@@ -1,0 +1,26 @@
+body {
+  padding-top: 50px;
+}
+.starter-template {
+  padding: 40px 15px;
+  text-align: center;
+}
+
+.panel-title {
+	display: inline;
+}
+
+.panel-body .btn {
+	display: block;
+}
+
+.nav-tabs {
+	margin-bottom: 10px;
+}
+
+/*.job {
+  border: 2px solid black;
+  border-radius: 25px;
+  box-shadow: 10px 10px 5px #888888;
+  padding: 10px;
+}*/
