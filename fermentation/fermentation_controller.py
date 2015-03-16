@@ -231,6 +231,8 @@ def fermentors_change():
     print "\n\nsuper lol"
     print fermentor
 
+    return
+
     db_fermentor = FermentationFermentor(
         id = fermentor['id']
         ,name = fermentor['name']
@@ -271,6 +273,9 @@ def fermentors_change():
         ,fermentor=db_fermentor
         ,host=db_fermentor.host.id
     ) for probe in fermentor['probes']]
+
+    for db_probe in db_probes:
+        db_probe.save()
 
 
 

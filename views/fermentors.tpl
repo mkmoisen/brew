@@ -284,6 +284,9 @@
     angular.module('myApp', []).controller('fermentorController', ['$scope',  '$http', function($scope, $http) {
 
         $scope.update = function() {
+            console.log("are probes pristine yo? " + $scope.fermentor.probes.$pristine);
+            console.log("is schedule pristine yo? " + $scope.fermentor.schedules.$pristine);
+            console.log("is name pristine yo?" + $scope.fermentor.name.$pristine));
             $http.post('/fermentor/change', angular.toJson($scope.fermentor));
         }
 
@@ -304,6 +307,9 @@
         $scope.master.material = 'Glass';
         $scope.master.probes = [{'file_name':null, 'type':'wort'}];
         $scope.master.schedules = [{'dt':null, 'temp':null, 'index':0}];
+
+        $scope.master.probe_updated = false
+        $scope.master.schedule_updated = false
 
         $scope.reset = function() {
             $scope.fermentor = angular.copy($scope.master);
@@ -428,10 +434,12 @@
             }
         }
 
-        $scope.$watch('name', function() {$scope.test();});
+        $scope.$watch('fermentor.name', function() {$scope.test();});
+
+
 
         $scope.test = function() {
-
+            ;
         }
 
 
