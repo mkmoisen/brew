@@ -163,6 +163,7 @@
 
 
 <DIV ng-show="create || edit">
+    <FORM name="myForm">
     <TABLE class="table">
         <THEAD>
             <TH>Hostname</TH>
@@ -210,7 +211,7 @@
     </TABLE>
 
 
-    <TABLE ng-show="create" class="table table-striped">
+    <TABLE class="table table-striped">
         <THEAD>
             <TH>Probe File Name</TH>
             <TH>Probe Type</TH>
@@ -264,9 +265,7 @@
 
     <input name="schedule_index" id="schedule_index" type="hidden" />
 
-        <BUTTON id="lol" type="button">Submit</BUTTON>
-
-
+    </FORM>
 
 <HR />
 
@@ -284,9 +283,9 @@
     angular.module('myApp', []).controller('fermentorController', ['$scope',  '$http', function($scope, $http) {
 
         $scope.update = function() {
-            console.log("are probes pristine yo? " + $scope.fermentor.probes.$pristine);
-            console.log("is schedule pristine yo? " + $scope.fermentor.schedules.$pristine);
-            console.log("is schedule pristine yo? " + $scope.fermentor.name.$pristine);
+            console.log("are probes changed yo? " + $scope.fermentor.probes_updated);
+            console.log("is schedule changed yo? " + $scope.fermentor.schedule_updated);
+            console.log("name is null? " + ($scope.fermentor.name == null) + "; name is ''? " + ($scope.fermentor.name == ''));
             $http.post('/fermentor/change', angular.toJson($scope.fermentor));
         }
 
@@ -308,7 +307,7 @@
         $scope.master.probes = [{'file_name':null, 'type':'wort'}];
         $scope.master.schedules = [{'dt':null, 'temp':null, 'index':0}];
 
-        $scope.master.probe_updated = false
+        $scope.master.probes_updated = false
         $scope.master.schedule_updated = false
 
         $scope.reset = function() {
@@ -431,15 +430,48 @@
                 $scope.fermentor.probes = fermentor.probes;
                 $scope.fermentor.schedules = fermentor.schedules;
 
+                $scope.edit_original = angular.copy($scope.fermentor);
+
             }
         }
 
-        $scope.$watch('fermentor.name', function() {$scope.test();});
+        $scope.$watch('fermentor.probes', function() {$scope.watch_probes();}, true);
+        $scope.$watch('fermentor.schedules', function() {$scope.watch_schedule();}, true);
+        $scope.$watch('fermentor.name', function() {$scope.watch_name();});
 
 
+        $scope.watch_name = function() {
+            console.log("name watch");
+            if ($scope.fermentor.name != $scope.edit_original.name) {
+                console.log("name differs");
+            } else {
+                console.log("name not different");
+            }
+        }
 
-        $scope.test = function() {
-            ;
+
+        $scope.watch_probes = function() {
+            if ($scope.edit) {
+                console.log("probe scope edit is true");
+                if (angular.toJson($scope.fermentor.probes) != angular.toJson($scope.edit_original.probes)) {
+                    $scope.fermentor.probes_updated = true;
+                    console.log("probes differ");
+                } else {
+                    console.log("probes do not differ");
+                }
+            }
+        }
+
+        $scope.watch_schedule = function() {
+            if ($scope.edit) {
+                console.log("scope edit is true");
+                if (angular.toJson($scope.fermentor.schedules) != angular.toJson($scope.edit_original.schedules)) {
+                    $scope.fermentor.schedule_updated = true;
+                    console.log("schedules differ");
+                } else {
+                    console.log("schedules do not differ");
+                }
+            }
         }
 
 

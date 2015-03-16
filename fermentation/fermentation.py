@@ -612,8 +612,11 @@ if __name__ == '__main__':
             for fermentor in FermentorList:
                 try:
                     fermentor.wort_temp = fermentor.wort_probe.temp # Mandatory
+                except IOError as ex:
+                    print "Probe is probably disconnected! Cannot read wort temp. Turning off fermwrap.", ex.message
+                    fermentor.turn_fermwrap_off()
                 except RuntimeError as ex:
-                    print "RuntimeError > 25 second retyring. Cannot read wort temp. Turning off fermwrap.", ex.message
+                    print "RuntimeError > 25 second retyring or 185F. Cannot read wort temp. Turning off fermwrap.", ex.message
                     fermentor.turn_fermwrap_off()
                 except Exception as ex:
                     fermentor.turn_fermwrap_off()

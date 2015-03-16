@@ -44,6 +44,8 @@ class Probe(object):
             temp_string = lines[1][equals_pos+2:]
             temp_c = float(temp_string) / 1000.0
             temp_f = temp_c * 9.0 / 5.0 + 32.0
+            if temp_f == 185.0:
+                raise RuntimeError("Probe {} is 185.0F!".format(self.file_name))
             return temp_f
 
     def __str__(self):

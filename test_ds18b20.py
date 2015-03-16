@@ -13,5 +13,8 @@ else:
 
 while True:
     for probe in probes:
-        print "{} temperature is {}".format(probe.file_name, probe.temp)
+        try:
+            print "{} temperature is {}".format(probe.file_name, probe.temp)
+        except Exception as ex:
+            print "Error reading {}: ".format(probe.file_name), ex.__class__.__name__, ex.message
     time.sleep(5)
