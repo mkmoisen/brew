@@ -286,7 +286,7 @@
         $scope.update = function() {
             console.log("are probes pristine yo? " + $scope.fermentor.probes.$pristine);
             console.log("is schedule pristine yo? " + $scope.fermentor.schedules.$pristine);
-            console.log("is name pristine yo?" + $scope.fermentor.name.$pristine));
+            console.log("is schedule pristine yo? " + $scope.fermentor.name.$pristine);
             $http.post('/fermentor/change', angular.toJson($scope.fermentor));
         }
 
