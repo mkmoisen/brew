@@ -362,7 +362,7 @@
             % end
         ];
 
-
+        $scope.index_order = {{index_order}};
 
         $scope.add_schedule = function(index) {
             for (i = index + 1; i < $scope.fermentor.schedules.length; i++) {
