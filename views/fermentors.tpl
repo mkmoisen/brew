@@ -196,7 +196,7 @@
                         % end
                     </SELECT>
                 </TD>
-                <TD><INPUT ng-model="fermentor.start_date" type="text" name="start_date" /></TD>
+                <TD><INPUT class="datepicker" ng-model="fermentor.start_date" type="text" name="start_date" /></TD>
                 <TD><INPUT ng-model="fermentor.end_begin_date" type="text" name="end_begin_date"  /></TD>
                 <TD><INPUT ng-model="fermentor.end_end_date" type="text" name="end_end_date" /></TD>
                 <TD><INPUT ng-model="fermentor.start_temp" type="text" name="start_temp" /></TD>
@@ -261,6 +261,7 @@
 
         </TBODY>
     </TABLE>
+       <BUTTON class="btn" ng-hide="is_scheduled" ng-click="create_schedule()">Add Schedule</BUTTON>
 
 
     <input name="schedule_index" id="schedule_index" type="hidden" />
@@ -286,9 +287,55 @@
             console.log("are probes changed yo? " + $scope.fermentor.probes_updated);
             console.log("is schedule changed yo? " + $scope.fermentor.schedule_updated);
             console.log("name is null? " + ($scope.fermentor.name == null) + "; name is ''? " + ($scope.fermentor.name == ''));
-            $http.post('/fermentor/change', angular.toJson($scope.fermentor));
+
+            $http.post('/fermentor/change', angular.toJson($scope.fermentor))
+            .success(function(response) {
+                console.log("its a success!");
+                if ($scope.create) {
+                    $scope.fermentors.push($scope.fermentor); // Add created fermentor to array to display it in list
+                    $scope.index_order[$scope.fermentor.id]=$scope.next_index; // Add new fermentor to index object
+                    $scope.next_index += 1; // Increment index for next time in case user creates another fermentor
+                } else if ($scope.edit) {
+                    /* Determine which fermentor to pull out of the array via the index_order obj */
+                    $scope.fermentors[$scope.index_order[$scope.fermentor.id]] = $scope.fermentor
+                }
+
+                $scope.reset(); // Change the create/edit new fermentor to null
+                $scope.create = false;
+                $scope.edit = false;
+            })
+            .error(function(data, status, headers, config) {
+                console.log("its a failure NOOB");
+            });
+        }
+        /* This needs to display some loading icon or something so the stupid end user doesn't think its broken */
+        $scope.get_fermentors = function() {
+
+            $http.get('/fermentor/get')
+            .success(function(data, status, headers, config) {
+                $scope.fermentors = data; //JSON Array of fermentors
+
+                $scope.index_order = {}; // This is used to pull the correct fermentor of of the array when user clicks Edit
+
+                for (var i = 0; i < $scope.fermentors.length; i++) {
+
+                    $scope.index_order[$scope.fermentors[i].id]=i; // Set the fermentor.id to the ith value
+
+                    for (var o = 0; o < $scope.fermentors[i].schedules.length; o++) {
+                        $scope.fermentors[i].schedules[o].index = o; // This is for the add/remove schedule feature to keep them in order
+
+                    }
+                }
+                $scope.next_index = $scope.fermentors.length; // Increment the index for next time if user creates new fermentor
+            }).
+            error(function(data,status,headers,config) {
+                console.log("its a failure NOOB");
+            });
         }
 
+        /* Master Fermentor is the base; but $scope.fermentor is the actual obj bound to the form for editing/creating a fermentor */
+        // Right now this gets some values populating from python using the template system. Anything here with {} comes from python
+        // I need to replace this with an ajax JSON call like I did with the fermentors
         $scope.master = {}
         $scope.master.id = null;
         $scope.master.hostname = '{{hostname}}';
@@ -305,111 +352,100 @@
         $scope.master.fg = null;
         $scope.master.material = 'Glass';
         $scope.master.probes = [{'file_name':null, 'type':'wort'}];
-        $scope.master.schedules = [{'dt':null, 'temp':null, 'index':0}];
-
-        $scope.master.probes_updated = false
-        $scope.master.schedule_updated = false
+        $scope.master.schedules = [];
 
         $scope.reset = function() {
+            /* Call this function whenever form to go back to null; e.g., save a fermentor */
             $scope.fermentor = angular.copy($scope.master);
         };
-        $scope.reset();
 
+        $scope.reset();
+        $scope.master.probes_updated = false;
+        $scope.master.schedule_updated = false;
         $scope.create = false;
         $scope.edit = false;
-        $scope.incomplete = false;
+        $scope.incomplete = false; // This should prevent the end user from submitting a form if he fucked up
+        $scope.is_scheduled = false; // This is to show to initial add schedule button in case user doesnt want to add any temp schedules
 
 
+        $scope.get_fermentors(); // Call the ajax to get an array of fermentors
 
-        % index = 0
-        % index_order = {}
-
-        $scope.fermentors = [
-            % for fermentor in fermentors:
-                % index_order[fermentor.id] = index
-                % index += 1
-                {
-                    id:{{fermentor.id}},
-                    hostname:'{{fermentor.host.hostname}}',
-                    host_id:{{fermentor.host.id}},
-                    name:'{{fermentor.name}}',
-                    % for fermwrap in fermentor.fermentor_fermwraps:
-                    fermwrap:{{fermwrap.pin}},
-                    % end
-                    start_date:'{{fermentor.start_date}}',
-                    end_begin_date:'{{fermentor.end_begin_date}}',
-                    end_end_date:'{{fermentor.end_end_date}}',
-                    start_temp:{{fermentor.start_temp}},
-                    temp_differential:{{fermentor.temp_differential}},
-                    yeast:'{{fermentor.yeast}}',
-                    og:{{fermentor.og}},
-                    fg:{{!'null' if fermentor.fg is None else fermentor.fg}},
-                    material:'{{fermentor.material}}',
-                    probes:[
-                        % for probe in fermentor.fermentor_probes:
-                            {
-                                file_name:'{{probe.file_name}}',
-                                type:'{{probe.type}}'
-                            },
-                        % end
-                    ],schedules:[
-                        % schedule_index = 0
-                        % for schedule in fermentor.fermentor_schedules:
-                            {
-                                dt:'{{schedule.dt}}',
-                                temp:{{schedule.temp}},
-                                index:{{schedule_index}}
-                            },
-                            % schedule_index += 1
-                        % end
-                    ],
-                },
-            % end
-        ];
-
-        $scope.index_order = {{index_order}};
-
+        /* Schedules need to be presented in order when the end user hits add or remove in the middle of a schedule */
         $scope.add_schedule = function(index) {
-            for (i = index + 1; i < $scope.fermentor.schedules.length; i++) {
+            /* Shift all the following schedule's index up by one */
+            for (var i = index + 1; i < $scope.fermentor.schedules.length; i++) {
                 $scope.fermentor.schedules[i].index += 1;
             }
             $scope.fermentor.schedules.splice(index + 1, 0, {'dt':null, 'temp':null, 'index':index+1});
         }
         $scope.remove_schedule = function(index) {
             //alert("index is " + index + " length is " + $scope.fermentor.schedules.length + "array is " + JSON.stringify($scope.fermentor.schedules));
+            console.log("index = " + index);
+            console.log("$scope.fermentor.schedules.length = " + $scope.fermentor.schedules.length);
+            console.log("$scope.fermentor.schedules = " + angular.toJson($scope.fermentor.schedules));
             if ($scope.fermentor.schedules.length == 1) {
-                //alert("block");
-                return;
+                $scope.is_scheduled = false; // Turn on that button
+            }
+            /* Shift all the following schedule's idnex down by one */
+            for (var i = index + 1; i < $scope.fermentor.schedules.length; i++) {
+                $scope.fermentor.schedules[i].index-=1;
             }
             $scope.fermentor.schedules.splice(index, 1);
         }
 
+        /* This is only for the initial add schedule button for a new fermentor */
+        $scope.create_schedule = function() {
+
+            // Append an empty schedule
+            $scope.fermentor.schedules.push({'dt':null, 'temp':null, 'index':0});
+
+            // Disable the inital add schedule button
+            $scope.is_scheduled = true;
+        }
+
+        /* Unlike Schedules, Probes do not need to maintain any order in the UI */
         $scope.add_probe = function() {
+            // No more than 3 probes per fermentor allowed
             if ($scope.fermentor.probes.length < 3) {
                 $scope.fermentor.probes.push({'file_name':null, 'type':null});
             }
         }
 
         $scope.remove_probe = function() {
+            // At least one probe for wort is required
+            // This should implement some logic so the wort probe cannot be deleted off the UI
             if ($scope.fermentor.probes.length > 1) {
                 $scope.fermentor.probes.pop();
             }
         }
 
         $scope.editFermentor = function(id) {
+            /* This function handles both creating new fermentor and editing another fermentor depending on 'id' value */
+
+            // Restset updated back to False because I'm editing/creating a different fermentor now
+            $scope.master.probes_updated = false;
+            $scope.master.schedule_updated = false;
 
             if (id == 'new') {
+                // Creating a fermentor
+
                 $scope.create = true;
                 $scope.edit = false;
                 $scope.incomplete = true;
+                $scope.is_scheduled = false; // Not "is_scheduled" until punk ass end user clicks the first add schedule button
 
                 $scope.reset();
 
+                $scope.edit_original = null;
+
             } else {
+                // Editing a fermentor
+
                 $scope.create = false;
                 $scope.edit = true;
                 $scope.incomplete = false;
 
+                // Pull the correct fermentor from the array bia the index_order dict
                 var fermentor = $scope.fermentors[$scope.index_order[id]];
 
 
@@ -417,7 +453,7 @@
                 $scope.fermentor.hostname = fermentor['hostname'];
                 $scope.fermentor.host_id = fermentor['host_id']
                 $scope.fermentor.name = fermentor['name'];
-                $scope.fermentor.fermwrap = fermentor['fermwrap'];
+                $scope.fermentor.fermwrap = fermentor['fermwrap']; // This is fermwrap pin
                 $scope.fermentor.start_date = fermentor['start_date'];
                 $scope.fermentor.end_begin_date = fermentor['end_begin_date'];
                 $scope.fermentor.end_end_date = fermentor['end_end_date'];
@@ -430,22 +466,29 @@
                 $scope.fermentor.probes = fermentor.probes;
                 $scope.fermentor.schedules = fermentor.schedules;
 
-                $scope.edit_original = angular.copy($scope.fermentor);
+                if ($scope.fermentor.schedules.length > 0) {
+                    $scope.is_scheduled = true;
+                } else {
+                    $scope.is_scheduled = false;
+                }
+
+                $scope.edit_original = angular.copy($scope.fermentor); // Used to determine if probes or schedule has been updated
 
             }
         }
 
+        $scope.$watch('fermentor.name', function() {$scope.watch_name();}); // This is not necessary
         $scope.$watch('fermentor.probes', function() {$scope.watch_probes();}, true);
         $scope.$watch('fermentor.schedules', function() {$scope.watch_schedule();}, true);
-        $scope.$watch('fermentor.name', function() {$scope.watch_name();});
-
 
         $scope.watch_name = function() {
-            console.log("name watch");
-            if ($scope.fermentor.name != $scope.edit_original.name) {
-                console.log("name differs");
-            } else {
-                console.log("name not different");
+            /* This is not necessary */
+            if ($scope.edit) {
+                if ($scope.fermentor.name != $scope.edit_original.name) {
+                    console.log("name differs");
+                } else {
+                    console.log("name not different");
+                }
             }
         }
 
@@ -459,6 +502,10 @@
                 } else {
                     console.log("probes do not differ");
                 }
+            } else if ($scope.create) {
+                // Back end will only create new probes if probes_updated == true
+                $scope.fermentor.probes_updated = true;
+                console.log("probes differ");
             }
         }
 
@@ -471,6 +518,10 @@
                 } else {
                     console.log("schedules do not differ");
                 }
+            } else if ($scope.create && $scope.is_scheduled) {
+                // Back end will only create new schedules if schedule_updated == true
+                $scope.fermentor.schedule_updated = true;
+                console.log("schedule updated");
             }
         }
 

@@ -17,13 +17,33 @@ import json
 if __name__ == '__main__':
     print "fermentation main lol"
 
+'''
+query = (FermentationFermentor.select()
+        .where(FermentationFermentor.active == 1)
+    .join(FermentationHost)
+.switch(FermentationFermentor)
+    .join(FermentationProbe, on=FermentationProbe.fermentor)
+.switch(FermentationFermentor)
+    .join(FermentationFermwrap, peewee.JOIN_LEFT_OUTER, on=FermentationFermwrap.fermentor)
+.switch(FermentationFermentor)
+    .join(FermentationSchedule, peewee.JOIN_LEFT_OUTER, on=FermentationSchedule.fermentor)
+)
 
+query = peewee.prefetch(FermentationHost.select(), FermentationFermentor)
+for host in query:
+    print host.hostname
+    for fermentor in host.host_fermentors_prefetch:
+        print fermentor.name
+'''
+
+@app.route('/fermentor/get')
+@app.route('/fermentor/get/')
 def get_active_fermentors():
     print "IS IT CLOSED YO ?", get_db().is_closed()
     get_db()
 
 
-
+    '''
     query = (FermentationFermentor.select()
                 .where(FermentationFermentor.active == 1)
             .join(FermentationHost)
@@ -31,12 +51,53 @@ def get_active_fermentors():
             .join(FermentationProbe, on=FermentationProbe.fermentor)
         .switch(FermentationFermentor)
             .join(FermentationFermwrap, peewee.JOIN_LEFT_OUTER, on=FermentationFermwrap.fermentor)
-        .switch(FermentationFermentor)
-            .join(FermentationSchedule, peewee.JOIN_LEFT_OUTER, on=FermentationSchedule.fermentor)
-    )
+        .switch(FermentationFermentor).join(FermentationSchedule, peewee.JOIN_LEFT_OUTER, on=FermentationSchedule.fermentor)).aggregate_rows()
+    '''
 
     fermentors = []
+    for host in peewee.prefetch(FermentationHost.select(), FermentationFermentor.select(), FermentationProbe.select(), FermentationFermwrap.select(), FermentationSchedule.select()):
+        print host.hostname
 
+        for fermentor in host.host_fermentors:
+            f = {'id':fermentor.id,
+                 'hostname':host.hostname,
+                 'host_id':host.id,
+                 'name':fermentor.name,
+                 'start_date':fermentor.start_date.strftime('%Y-%m-%d %H:%M:%S'),
+                 'end_begin_date':fermentor.end_begin_date.strftime('%Y-%m-%d %H:%M:%S'),
+                 'end_end_date':fermentor.end_end_date.strftime('%Y-%m-%d %H:%M:%S'),
+                 'start_temp':fermentor.start_temp,
+                 'temp_differential':fermentor.temp_differential,
+                 'yeast':fermentor.yeast,
+                 'og':fermentor.og,
+                 'fg':fermentor.fg,
+                 'material':fermentor.material,
+                 }
+
+            fermentors.append(f)
+
+
+            for fermwrap in fermentor.fermentor_fermwraps:
+                f['fermwrap']=fermwrap.pin
+
+            f['probes'] = []
+            for probe in fermentor.fermentor_probes:
+                f['probes'].append({'file_name':probe.file_name,
+                                   'type':probe.type})
+            f['schedules'] = []
+            for schedule in fermentor.fermentor_schedules:
+                f['schedules'].append({'dt':schedule.dt.strftime('%Y-%m-%d %H:%M:%S'),
+                                      'temp':schedule.temp})
+
+    for fermentor in fermentors:
+        print "\t",fermentor['name']
+        for probe in fermentor['probes']:
+            print "\t",probe['file_name']
+        if 'fermwrap' in fermentor:
+            print "\t",fermentor['fermwrap']
+        for schedule in fermentor['schedules']:
+            print "\t",schedule['dt'], schedule['temp']
+    '''
     for fermentor in query:
         if fermentor not in fermentors:
             fermentors.append(fermentor)
@@ -55,8 +116,9 @@ def get_active_fermentors():
             print schedule.dt, schedule.temp
 
     get_db().close()
+    '''
 
-    return fermentors
+    return json.dumps(fermentors)
 
 def get_hosts():
     get_db()
@@ -75,7 +137,9 @@ def get_hosts():
 @app.route('/fermentor')
 def fermentor():
     # Get active fermentors
-    fermentors = get_active_fermentors()
+    #fermentors = get_active_fermentors()
+
+
 
     # Get hosts
     hosts = get_hosts()
@@ -102,7 +166,7 @@ def fermentor():
     probe_types = ['None','ambient','wort','swamp'] # Can I get these from peewee model instead?
 
 
-    variables = {'fermentors':fermentors,
+    variables = {#'fermentors':fermentors,
                  'hosts':hosts,
                  'probe_types':probe_types,
                  'probes':probes,
@@ -114,8 +178,56 @@ def fermentor():
 
     get_db().close()
 
+    
+
     return template('fermentors', variables)
 
+
+'''
+
+        $scope.fermentors = [
+            % for fermentor in fermentors:
+                % index_order[fermentor.id] = index
+                % index += 1
+                {
+                    id:{{fermentor.id}},
+                    hostname:'{{fermentor.host.hostname}}',
+                    host_id:{{fermentor.host.id}},
+                    name:'{{fermentor.name}}',
+                    % for fermwrap in fermentor.fermentor_fermwraps:
+                    fermwrap:{{fermwrap.pin}},
+                    % end
+                    start_date:'{{fermentor.start_date}}',
+                    end_begin_date:'{{fermentor.end_begin_date}}',
+                    end_end_date:'{{fermentor.end_end_date}}',
+                    start_temp:{{fermentor.start_temp}},
+                    temp_differential:{{fermentor.temp_differential}},
+                    yeast:'{{fermentor.yeast}}',
+                    og:{{fermentor.og}},
+                    fg:{{!'null' if fermentor.fg is None else fermentor.fg}},
+                    material:'{{fermentor.material}}',
+                    probes:[
+                        % for probe in fermentor.fermentor_probes:
+                            {
+                                file_name:'{{probe.file_name}}',
+                                type:'{{probe.type}}'
+                            },
+                        % end
+                    ],schedules:[
+                        % schedule_index = 0
+                        % for schedule in fermentor.fermentor_schedules:
+                            {
+                                dt:'{{schedule.dt}}',
+                                temp:{{schedule.temp}},
+                                index:{{schedule_index}}
+                            },
+                            % schedule_index += 1
+                        % end
+                    ],
+                },
+            % end
+        ];
+'''
 @app.post('/fermentor/add/')
 @app.post('/fermentor/add')
 def fermentors_add():
@@ -212,8 +324,8 @@ def fermentors_add():
 @app.post('/fermentor/change/')
 @app.post('/fermentor/change')
 def fermentors_change():
-    get_db()
 
+    '''
     print "hai"
     print "fermentor = "
     print request.forms.get('fermentor')
@@ -226,60 +338,105 @@ def fermentors_change():
         print key
         print "\n\njson"
         print json.loads(key)
-
+    '''
     fermentor = json.loads(request.forms.dict.keys()[0])
     print "\n\nsuper lol"
     print fermentor
 
-    return
 
-    db_fermentor = FermentationFermentor(
-        id = fermentor['id']
-        ,name = fermentor['name']
-        ,start_date = datetime.strptime(fermentor['start_date'], '%Y-%m-%d %H:%M%:S')
-        ,end_begin_date = datetime.strptime(fermentor['end_begin_date'], '%Y-%m-%d %H:%M%:S')
-        ,end_end_date = datetime.strptime(fermentor['end_end_date'], '%Y-%m-%d %H:%M%:S')
-        ,yeast = fermentor['yeast']
-        ,og = fermentor['og']
-        ,fg = fermentor['fg']
-        ,start_temp = fermentor['start_temp']
-        ,temp_differential = fermentor['temp_differential']
-        ,active = fermentor['active']
-        ,material = fermentor['material']
-        ,host = fermentor['host_id']
-    )
+    get_db()
 
-    # For edits
-    db_fermwrap = FermentationFermwrap.select().where(
-        # Should I check to see if that pin is already in use?
-        fermentor=db_fermentor.id
-    )
-    if db_fermwrap.pin != fermentor['fermwrap']:
-        db_fermwrap.pin = fermentor['fermwrap']
-        db_fermwrap.update()
+    db_fermentor = None
+
+    print "id is ", fermentor['id']
+
+    if fermentor['id'] is None or fermentor['id'] == '':
+        print "new lol\n\n\n"
+        db_fermentor = FermentationFermentor(
+            id = fermentor['id']
+            ,name = fermentor['name']
+            ,start_date = datetime.strptime(fermentor['start_date'], '%Y-%m-%d %H:%M:%S')
+            ,end_begin_date = datetime.strptime(fermentor['end_begin_date'], '%Y-%m-%d %H:%M:%S')
+            ,end_end_date = datetime.strptime(fermentor['end_end_date'], '%Y-%m-%d %H:%M:%S')
+            ,yeast = fermentor['yeast']
+            ,og = fermentor['og']
+            ,fg = fermentor['fg']
+            ,start_temp = fermentor['start_temp']
+            ,temp_differential = fermentor['temp_differential']
+            ,material = fermentor['material']
+            ,host = fermentor['host_id']
+        )
+    else :
+        db_fermentor = FermentationFermentor.get(id=fermentor['id'])
+        db_fermentor.name = fermentor['name']
+        db_fermentor.start_date = datetime.strptime(fermentor['start_date'], '%Y-%m-%d %H:%M:%S')
+        db_fermentor.end_begin_date = datetime.strptime(fermentor['end_begin_date'], '%Y-%m-%d %H:%M:%S')
+        db_fermentor.end_end_date = datetime.strptime(fermentor['end_end_date'], '%Y-%m-%d %H:%M:%S')
+        db_fermentor.yeast = fermentor['yeast']
+        db_fermentor.og = fermentor['og']
+        db_fermentor.fg = fermentor['fg']
+        db_fermentor.start_temp = fermentor['start_temp']
+        db_fermentor.temp_differential = fermentor['temp_differential']
+        db_fermentor.material = fermentor['material']
+        db_fermentor.host = fermentor['host_id']
+
+    ''' WTF TRANSACTIONS DONT WORK ???? '''
+
+    db_fermentor.save()
+
+    db_fermwrap = FermentationFermwrap.get(FermentationFermwrap.host==db_fermentor.host,
+                                           FermentationFermwrap.pin == fermentor['fermwrap'])
+
+    db_fermwrap.fermentor = db_fermentor
+
+    db_fermwrap.save()
+
+    if fermentor['id'] != '' and fermentor['probes_updated']:
+        FermentationProbe.delete().where(FermentationProbe.fermentor==db_fermentor)
+
+    if fermentor['id'] == '' or fermentor['probes_updated']:
+        db_probes = [FermentationProbe(
+            file_name=probe['file_name']
+            ,type = probe['type']
+            ,fermentor=db_fermentor
+            ,host=db_fermentor.host
+        ) for probe in fermentor['probes']]
+
+        for db_probe in db_probes:
+            print "db_probe fermentor = ", db_probe.fermentor, "id = ", db_probe.fermentor.id
+            db_probe.save()
+
+    if fermentor['id'] != '' and fermentor['schedule_updated']:
+        FermentationSchedule.select().where(FermentationSchedule.fermentor==db_fermentor).execute()
+
+
+    if fermentor['id'] == '' or fermentor['schedule_updated']:
+
+        db_schedule = [FermentationSchedule(
+            dt=schedule['dt']
+            ,temp=schedule['temp']
+            ,fermentor=db_fermentor
+        ) for schedule in fermentor['schedules']]
+
+        for db_schedule in db_schedule:
+            db_schedule.save()
+
+
 
     db_probes = []
-    if db_fermentor.id is not None:
-        # Shouldn't I actually check for updates first before deleting unecessarily?
-        for db_probe in FermentationProbe.select().where(
-            FermentationProbe.fermentor == db_fermentor
-        ):
-            db_probe.delete()
+    if fermentor['id'] != '':
+        FermentationProbe.delete().where(FermentationProbe.fermentor == db_fermentor).execute()
 
 
     db_probes = [FermentationProbe(
         file_name=probe['file_name']
         ,type = probe['type']
         ,fermentor=db_fermentor
-        ,host=db_fermentor.host.id
+        ,host=db_fermentor.host
     ) for probe in fermentor['probes']]
 
     for db_probe in db_probes:
         db_probe.save()
-
-
-
-
 
 
     get_db().close()

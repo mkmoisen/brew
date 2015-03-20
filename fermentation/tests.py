@@ -670,6 +670,38 @@ unittest.TextTestRunner(verbosity=2).run(suite)
 import peewee
 from settings import BaseModel, get_db
 
+from fermentation.fermentation import FermentationHost, FermentationFermentor, FermentationProbe, FermentationFermwrap
+from fermentation.fermentation import FermentationSchedule
+
+d_fermentors = FermentationFermentor.select()
+d_hosts = FermentationFermentor.select()
+
+for fermentor in peewee.prefetch(FermentationHost.select(), FermentationFermentor):
+    print fermentor.hostname
+
+for host in peewee.prefetch(FermentationHost.select(), FermentationFermentor.select(), FermentationProbe.select(), FermentationFermwrap.select(), FermentationSchedule.select()):
+    print host.hostname
+    for fermentor in host.host_fermentors:
+        print "\t",fermentor.name
+        for probe in fermentor.fermentor_probes:
+            print "\t",probe.file_name
+        for fermwrap in fermentor.fermentor_fermwraps:
+            print "\t",fermwrap.pin
+        for schedule in fermentor.fermentor_schedules:
+            print "\t",schedule.dt, schedule.temp
+
+
+query = (FermentationFermentor.select()
+        .where(FermentationFermentor.active == 1)
+    .join(FermentationHost)
+.switch(FermentationFermentor)
+    .join(FermentationProbe, on=FermentationProbe.fermentor)
+.switch(FermentationFermentor)
+    .join(FermentationFermwrap, peewee.JOIN_LEFT_OUTER, on=FermentationFermwrap.fermentor)
+.switch(FermentationFermentor)
+    .join(FermentationSchedule, peewee.JOIN_LEFT_OUTER, on=FermentationSchedule.fermentor)
+)
+
 class Parent(BaseModel):
     name = peewee.CharField()
 
@@ -704,6 +736,10 @@ for p in pars:
     for c in p.children:
         print "\t",c.name
 
+for parent in peewee.prefetch(Parent.select(), Child):
+    print parent.name
+
+
 
 '''
 
@@ -711,16 +747,12 @@ for p in pars:
 
 class TestAngularFermentor(unittest.TestCase):
     def setUp(self):
-        tables = [FermentationHost, FermentationFermentor, FermentationProbe, FermentationFermwrap, \
-    FermentationTemperature, FermentationSchedule]
-        self.tables = tables
-        for table in tables:
-            get_db().drop_table(table, True)
-            get_db().create_table(table, True)
+        import init_db
+
 
     def test_one_fermentor(self):
-        host = FermentationHost.create(hostname=socket.gethostname(),
-                                       updated=0)
+        host = FermentationHost.get(FermentationHost.hostname=='mmoisen-WS')
+
         fermentor = FermentationFermentor.create(name="Munich Dunkel",
                                                  start_date = datetime.now(),
                                                  end_begin_date = datetime.now() + timedelta(days=14),
@@ -733,11 +765,13 @@ class TestAngularFermentor(unittest.TestCase):
                                                  active=1,
                                                  material="Glass",
                                                  host=host)
-        fermwrap = FermentationFermwrap.create(pin=17,
-                                               in_use=1,
-                                               is_on=0,
-                                               host=host,
-                                               fermentor=fermentor)
+
+        fermwrap = FermentationFermwrap.get(FermentationFermwrap.host==host, FermentationFermwrap.pin==17)
+        print "LOL fermwrap host is ", fermwrap.host.id, fermwrap.pin
+        fermwrap.fermentor=fermentor
+        print "LOL fermwrap host is ", fermwrap.host.id, fermwrap.pin, fermwrap.fermentor.name
+        fermwrap.save()
+        print "LOL fermwrap host is ", fermwrap.host.id, fermwrap.pin, fermwrap.fermentor.name
         wort_probe = FermentationProbe.create(file_name='28-1234567890',
                                               type='wort',
                                               host=host,
@@ -757,8 +791,7 @@ class TestAngularFermentor(unittest.TestCase):
         get_active_fermentors()
     '''
     def test_two_fermentors(self):
-        host = FermentationHost.create(hostname=socket.gethostname(),
-                                       updated=0)
+        host = FermentationHost.get(FermentationHost.hostname='mmoisen-WS'))
         fermentor = FermentationFermentor.create(name="Munich Dunkel",
                                                  start_date = datetime.strptime('2015-01-03 00:00:00', '%Y-%m-%d %H:%M:%S'),
                                                  end_begin_date = datetime.strptime('2015-01-03 00:00:00', '%Y-%m-%d %H:%M:%S')+ timedelta(days=14),

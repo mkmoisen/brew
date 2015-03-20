@@ -24,17 +24,20 @@ class FermentationHost(BaseModel):
 
     class Meta:
         db_table = 'fermentation_host'
+        indexes = (
+            (('hostname',),True),
+        )
 
 class FermentationFermentor(BaseModel):
     name = peewee.CharField(max_length=255)
     start_date = peewee.DateField()
     end_begin_date = peewee.DateField(null=True)
     end_end_date = peewee.DateField(null=True)
-    yeast = peewee.CharField(max_length=225)
+    yeast = peewee.CharField(max_length=225, null=True)
     og = peewee.DoubleField(null=True)
     fg = peewee.DoubleField(null=True)
     start_temp = peewee.DoubleField()
-    temp_differential = peewee.DoubleField(default=0.25)
+    temp_differential = peewee.DoubleField(default=0.125)
     active = peewee.IntegerField(default=1, choices=((0,0),(1,1))) # Either 0 or 1
     material = peewee.CharField(max_length=50, choices =(('Glass','Glass'),('Plastic','Plastic'),('Metal','Metal')))
     host = peewee.ForeignKeyField(FermentationHost, related_name="host_fermentors")
@@ -47,7 +50,7 @@ class FermentationFermwrap(BaseModel):
     in_use = peewee.IntegerField(default=0, choices=((0,0),(1,1))) # What is this for?
     is_on = peewee.IntegerField(default=0, choices=((0,0),(1,1)))
     host = peewee.ForeignKeyField(FermentationHost, related_name="host_fermwraps")
-    fermentor = peewee.ForeignKeyField(FermentationFermentor, related_name="fermentor_fermwraps")
+    fermentor = peewee.ForeignKeyField(FermentationFermentor, related_name="fermentor_fermwraps", null=True)
 
     class Meta:
         db_table = 'fermentation_fermwrap'
@@ -65,6 +68,9 @@ class FermentationProbe(BaseModel):
 
     class Meta:
         db_table = 'fermentation_probe'
+        indexes = (
+            (('host','fermentor','file_name'),True),
+        )
 
 class FermentationTemperature(BaseModel):
     fermentor = peewee.ForeignKeyField(FermentationFermentor, related_name="fermentor_temperatures")
@@ -89,7 +95,7 @@ class FermentationSchedule(BaseModel):
         db_table = 'fermentation_schedule'
         indexes = (
             # Unique Key = True
-            (('fermentor','dt'), True)
+            (('fermentor','dt'), True),
         )
 
 
