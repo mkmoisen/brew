@@ -36,8 +36,12 @@ for host in query:
         print fermentor.name
 '''
 
-@app.route('/fermentor/get')
-@app.route('/fermentor/get/')
+
+'''
+This should probably be changed to /fermentation/fermentor/get
+'''
+@app.route('/fermentation/fermentor/get')
+@app.route('/fermentation/fermentor/get/')
 def get_active_fermentors():
     print "IS IT CLOSED YO ?", get_db().is_closed()
     get_db()
@@ -120,27 +124,113 @@ def get_active_fermentors():
 
     return json.dumps(fermentors)
 
+'''
+This should probably be changed to /fermentation/host/get
+'''
+@app.route('/fermentation/host/get')
+@app.route('/fermentation/host/get/')
 def get_hosts():
+    print "get_hosts()"
     get_db()
     hosts = []
     query = (FermentationHost.select())
-    for host in query:
-        if host not in hosts:
-            hosts.append(host)
 
-    return hosts
+    for host in query:
+        hosts.append({'id':host.id,
+                      'hostname':host.hostname})
+
     get_db().close()
 
+    for host in hosts:
+        print host
+
+    return json.dumps(hosts)
+    
+
+'''
+This should probably be changed to /fermentation/fermwraps/get
+'''
+@app.route('/fermentation/fermwrap/get')
+@app.route('/fermentation/fermwrap/get/')
+def get_fermwraps():
+    print "get_fermwraps()"
+    get_db()
+
+    # Is it possible that two hosts have differening number of pins if they are using two different models of RPi?
+    query = (FermentationFermwrap.select(FermentationFermwrap.pin).distinct())
+    fermwraps = []
+    for fermwrap in query:
+        fermwraps.append({'fermwrap':fermwrap.pin})
+
+    get_db().close()
+
+    for fermwrap in fermwraps:
+        print fermwrap
+    return json.dumps(fermwraps)
+
+'''
+This should probably be changed to /fermentation/host/get
+'''
+@app.route('/fermentation/default/get')
+@app.route('/fermentation/default/get/')
+def get_default_values():
+    print "get_default_values()"
+
+    default_hostname = socket.gethostname()
+
+    default_today = datetime.now()
+    default_end_begin_date = default_today + timedelta(days=28)
+    default_end_end_date = default_today + timedelta(days=42)
+    default_today = default_today.strftime('%Y-%m-%d %H:%M:%S')
+    default_end_begin_date = default_end_begin_date.strftime('%Y-%m-%d %H:%M:%S')
+    default_end_end_date = default_end_end_date.strftime('%Y-%m-%d %H:%M:%S')
+
+    ret = {
+        'default_today':default_today,
+        'default_end_begin_date':default_end_begin_date,
+        'default_end_end_date':default_end_end_date,
+        'default_hostname':default_hostname
+    }
+
+    for d in ret:
+        print d
+
+    return json.dumps(ret)
+
+@app.route('/fermentation/probe_type/get')
+@app.route('/fermentation/probe_type/get/')
+def get_probe_types():
+    print "get_probe_types()"
+    # this should be retrieved dynamically
+    return json.dumps(['wort','ambient', 'swamp'])
+
+@app.route('/fermentation/probe/get')
+@app.route('/fermentation/probe/get/')
+def get_probes():
+    print "get_probes()"
+    # Get temperature Probes
+    process = os.popen('ls /sys/bus/w1/devices/ | grep 28')
+    preprocessed = process.read()
+    process.close()
+    probes = preprocessed.split('\n')[:-1]
+    # This should throw some error or warning if no probes are available in the RPi
+
+    # What happens if the end user used the wrong RPi's website? You won't show him the correct hosts.
+    return json.dumps(probes)
 
 
-@app.route('/fermentor/')
-@app.route('/fermentor')
+
+@app.route('/fermentation/')
+@app.route('/fermentation')
 def fermentor():
+
+    return template('fermentors')
+
     # Get active fermentors
     #fermentors = get_active_fermentors()
 
 
-
+    '''
     # Get hosts
     hosts = get_hosts()
 
@@ -177,10 +267,11 @@ def fermentor():
                  'hostname':hostname}
 
     get_db().close()
-
+    '''
     
 
-    return template('fermentors', variables)
+    #return template('fermentors', variables)
+
 
 
 '''
@@ -228,8 +319,12 @@ def fermentor():
             % end
         ];
 '''
-@app.post('/fermentor/add/')
-@app.post('/fermentor/add')
+
+'''
+This isn't used. remove it and us the change one below.
+'''
+@app.post('/fermentation/fermentor/add/')
+@app.post('/fermentation/fermentor/add')
 def fermentors_add():
     with get_db().transaction:
 
@@ -321,8 +416,8 @@ def fermentors_add():
 
     get_db().close()
 
-@app.post('/fermentor/change/')
-@app.post('/fermentor/change')
+@app.post('/fermentation/fermentor/change/')
+@app.post('/fermentation/fermentor/change')
 def fermentors_change():
 
     '''
@@ -440,6 +535,8 @@ def fermentors_change():
 
 
     get_db().close()
+
+    # This should return some 200 message probably.
 
 
 

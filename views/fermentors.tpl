@@ -183,20 +183,20 @@
             <TR>
                 <TD>
                     <SELECT ng-model="fermentor.host_id">
-                        % for host in hosts:
-                            <OPTION value="{{host.id}}" >{{host.hostname}}</OPTION>
-                        % end
+
+                            <OPTION ng-repeat="host in hosts" value="{{'{{host.id}}'}}" >{{'{{host.hostname}}'}}</OPTION>
+
                     </SELECT>
                 </TD>
                 <TD><INPUT ng-model="fermentor.name" type="text" /></TD>
                 <TD>
                     <SELECT ng-model="fermentor.fermwrap">
-                        % for fermwrap in fermwraps:
-                            <OPTION value="{{fermwrap}}">{{fermwrap}}</OPTION>
-                        % end
+
+                            <OPTION ng-repeat="fermwrap in fermwraps" value="{{'{{fermwrap.fermwrap}}'}}">{{'{{fermwrap.fermwrap}}'}}</OPTION>
+
                     </SELECT>
                 </TD>
-                <TD><INPUT class="datepicker" ng-model="fermentor.start_date" type="text" name="start_date" /></TD>
+                <TD><INPUT ng-model="fermentor.start_date" type="text" name="start_date" /></TD>
                 <TD><INPUT ng-model="fermentor.end_begin_date" type="text" name="end_begin_date"  /></TD>
                 <TD><INPUT ng-model="fermentor.end_end_date" type="text" name="end_end_date" /></TD>
                 <TD><INPUT ng-model="fermentor.start_temp" type="text" name="start_temp" /></TD>
@@ -220,16 +220,16 @@
             <TR ng-repeat="probe in fermentor.probes">
                 <TD>
                     <SELECT ng-model="probe.file_name">
-                        % for probe in probes:
-                            <OPTION value="{{probe}}">{{probe}}</OPTION>
-                        % end
+
+                            <OPTION ng_repeat="probe in probes" value="{{'{{probe}}'}}">{{'{{probe}}'}}</OPTION>
+
                     </SELECT>
                 </TD>
                 <TD>
                     <SELECT ng-model="probe.type">
-                        % for probe_type in probe_types:
-                            <OPTION value="{{probe_type}}">{{probe_type}}</OPTION>
-                        % end
+
+                            <OPTION ng-repeat="probe_type in probe_types" value="{{'{{probe_type}}'}}">{{'{{probe_type}}'}}</OPTION>
+
                     </SELECT>
                 </TD>
             </TR>
@@ -283,12 +283,14 @@
 <script>
     angular.module('myApp', []).controller('fermentorController', ['$scope',  '$http', function($scope, $http) {
 
+        console.log("WTF");
+
         $scope.update = function() {
             console.log("are probes changed yo? " + $scope.fermentor.probes_updated);
             console.log("is schedule changed yo? " + $scope.fermentor.schedule_updated);
             console.log("name is null? " + ($scope.fermentor.name == null) + "; name is ''? " + ($scope.fermentor.name == ''));
 
-            $http.post('/fermentor/change', angular.toJson($scope.fermentor))
+            $http.post('/fermentation/fermentor/change', angular.toJson($scope.fermentor))
             .success(function(response) {
                 console.log("its a success!");
                 if ($scope.create) {
@@ -311,7 +313,7 @@
         /* This needs to display some loading icon or something so the stupid end user doesn't think its broken */
         $scope.get_fermentors = function() {
 
-            $http.get('/fermentor/get')
+            $http.get('/fermentation/fermentor/get')
             .success(function(data, status, headers, config) {
                 $scope.fermentors = data; //JSON Array of fermentors
 
@@ -333,18 +335,82 @@
             });
         }
 
+        $scope.get_hosts = function() {
+            $http.get('/fermentation/host/get')
+            .success(function(data, status, headers, config) {
+                $scope.hosts = data;
+            }).
+            error(function(data, status, headers, config) {
+                console.log("noob host");
+            });
+        }
+
+        $scope.get_probes = function() {
+            $http.get('/fermentation/probe/get')
+            .success(function(data, status, headers, config) {
+                $scope.probes = data;
+            }).
+            error(function(data, status, headers, config) {
+                console.log("noob probe");
+            });
+        }
+
+        $scope.get_probe_types = function() {
+            $http.get('/fermentation/probe_type/get')
+            .success(function(data, status, headers, config) {
+                $scope.probe_types = data;
+            }).
+            error(function(data, status, headers, config) {
+                console.log("noob probe_types");
+            });
+        }
+
+        $scope.get_fermwraps = function() {
+            /* This is for the select box for the fermwrap pins */
+            $http.get('/fermentation/fermwrap/get')
+            .success(function(data, status, headers, config) {
+                $scope.fermwraps = data;
+            }).
+            error(function(data, status, headers, config) {
+                console.log("noob get_fermwraps");
+            });
+        }
+
+        $scope.get_default_values = function() {
+            /* This is for default values of new fermentor */
+            $http.get('/fermentation/default/get')
+            .success(function(data, status, headers, config) {
+                $scope.default_hostname = data['default_hostname'];
+                $scope.default_today = data['default_today'];
+                $scope.default_end_begin_date = data['default_end_begin_date'];
+                $scope.default_end_end_date = data['default_end_end_date'];
+
+                console.log("default_today = " + $scope.default_today);
+            }).
+            error(function(data, status, headers, config) {
+                console.log("noob get_default_values");
+            });
+        }
+
+        $scope.get_fermentors(); // Call the ajax to get an array of fermentors
+        $scope.get_hosts();
+        $scope.get_probes();
+        $scope.get_probe_types();
+        $scope.get_default_values();
+        $scope.get_fermwraps();
+
         /* Master Fermentor is the base; but $scope.fermentor is the actual obj bound to the form for editing/creating a fermentor */
         // Right now this gets some values populating from python using the template system. Anything here with {} comes from python
         // I need to replace this with an ajax JSON call like I did with the fermentors
         $scope.master = {}
         $scope.master.id = null;
-        $scope.master.hostname = '{{hostname}}';
+        $scope.master.hostname = $scope.default_hostname;
         $scope.master.host_id = null;
         $scope.master.name = null;
         $scope.master.fermwrap = null;
-        $scope.master.start_date = '{{today}}';
-        $scope.master.end_begin_date = '{{four_weeks_later}}';
-        $scope.master.end_end_date = '{{six_weeks_later}}';
+        $scope.master.start_date = $scope.default_today;
+        $scope.master.end_begin_date = $scope.default_end_begin_date;
+        $scope.master.end_end_date = $scope.default_end_end_date;
         $scope.master.start_temp = null;
         $scope.master.temp_differential = null;
         $scope.master.yeast = null;
@@ -360,6 +426,7 @@
         };
 
         $scope.reset();
+        console.log("$scope.master.start_date = " + $scope.master.start_date);
         $scope.master.probes_updated = false;
         $scope.master.schedule_updated = false;
         $scope.create = false;
@@ -368,7 +435,7 @@
         $scope.is_scheduled = false; // This is to show to initial add schedule button in case user doesnt want to add any temp schedules
 
 
-        $scope.get_fermentors(); // Call the ajax to get an array of fermentors
+
 
         /* Schedules need to be presented in order when the end user hits add or remove in the middle of a schedule */
         $scope.add_schedule = function(index) {

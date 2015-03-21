@@ -20,8 +20,14 @@ for table in tables:
 
 tables.reverse()
 
-for table in tables:
-    db.create_table(table)
+# This creates indexes and foreign keys
+db.create_tables(tables)
+
+''' calling db.create_table on a single table doesn't create indexes or foreign keys!'''
+#for table in tables:
+#    db.create_table(table)
+#    table.
+#    table.create_indexes()
 
 hostnames = 'mmoisen-WS','raspberrpy','raspberrypy1'
 

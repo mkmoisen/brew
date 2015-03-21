@@ -24,9 +24,6 @@ class FermentationHost(BaseModel):
 
     class Meta:
         db_table = 'fermentation_host'
-        indexes = (
-            (('hostname',),True),
-        )
 
 class FermentationFermentor(BaseModel):
     name = peewee.CharField(max_length=255)
@@ -61,7 +58,7 @@ class FermentationFermwrap(BaseModel):
 
 class FermentationProbe(BaseModel):
     file_name = peewee.CharField(max_length=50)
-    type = peewee.CharField(max_length=50, choices= tuple([(k.lower(),k) for k in ['Wort','Ambient','HLT','Mashtun']]))
+    type = peewee.CharField(max_length=50, choices= tuple([(k.lower(),k) for k in ['Wort','Ambient', 'Swamp']]))
     in_use = peewee.IntegerField(default=0, choices=((0,0),(1,1)))
     host = peewee.ForeignKeyField(FermentationHost, related_name="host_probes")
     fermentor = peewee.ForeignKeyField(FermentationFermentor, related_name="fermentor_probes")
@@ -69,8 +66,9 @@ class FermentationProbe(BaseModel):
     class Meta:
         db_table = 'fermentation_probe'
         indexes = (
-            (('host','fermentor','file_name'),True),
+            (('host','fermentor','file_name',),True),
         )
+
 
 class FermentationTemperature(BaseModel):
     fermentor = peewee.ForeignKeyField(FermentationFermentor, related_name="fermentor_temperatures")
