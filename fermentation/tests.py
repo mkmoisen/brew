@@ -769,6 +769,7 @@ class TestAngularFermentor(unittest.TestCase):
         fermwrap = FermentationFermwrap.get(FermentationFermwrap.host==host, FermentationFermwrap.pin==17)
         print "LOL fermwrap host is ", fermwrap.host.id, fermwrap.pin
         fermwrap.fermentor=fermentor
+        fermwrap.in_use = 1
         print "LOL fermwrap host is ", fermwrap.host.id, fermwrap.pin, fermwrap.fermentor.name
         fermwrap.save()
         print "LOL fermwrap host is ", fermwrap.host.id, fermwrap.pin, fermwrap.fermentor.name

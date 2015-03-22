@@ -5,8 +5,7 @@ import time
 import os
 
 from models import Probe
-
-
+from datetime import datetime
 
 def probes():
     if len(sys.argv) == 1:
@@ -17,9 +16,12 @@ def probes():
     return probes
 
 while True:
+    dt = datetime.now()
+    print "\n",dt
     for probe in probes():
         try:
             print "{} temperature is {}".format(probe.file_name, probe.temp)
         except Exception as ex:
             print "Error reading {}: ".format(probe.file_name), ex.__class__.__name__, ex.message
+
     time.sleep(5)

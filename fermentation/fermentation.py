@@ -65,9 +65,10 @@ class FermentationProbe(BaseModel):
 
     class Meta:
         db_table = 'fermentation_probe'
-        indexes = (
-            (('host','fermentor','file_name',),True),
-        )
+        #Fermentors commonly share the ambient probe noob
+        #indexes = (
+        #    (('host','fermentor','file_name','type'),True),
+        #)
 
 
 class FermentationTemperature(BaseModel):
