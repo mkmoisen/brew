@@ -47,7 +47,7 @@ def drop_and_create_tables():
     #    table.
     #    table.create_indexes()
 
-    
+
 
     print "creating hosts"
     hosts = [FermentationHost.create(hostname=hostname) for hostname in hostnames]
