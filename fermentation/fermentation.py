@@ -190,6 +190,8 @@ class Schedule(object):
 
     # replace this with def__init__(self, start_temp, increases):
     def __init__(self, start_date, start_temp, increases):
+        print "**** shchedule = "
+        print increases
         '''
 
         :param start_date: Day the beer was pitched
