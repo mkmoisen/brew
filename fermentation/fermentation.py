@@ -623,12 +623,12 @@ class Properties(object):
                 return
 
         if properties['updated']:
-            cls.construct_fermentor_list(properties)
+            updated = True
 
         if not updated:
             return
 
-        
+        cls.construct_fermentor_list(properties)
 
     @classmethod
     def construct_fermentor_list(cls, properties):
