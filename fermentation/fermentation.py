@@ -475,6 +475,7 @@ class Fermentor(object):
             line += 'I am not fermwrapped\n'
         for probe in self.probes:
             line += 'Probe {} - {}'.format(probe.probe_type, probe.file_name)
+        return line
 
 
 
