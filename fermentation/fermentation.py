@@ -439,7 +439,7 @@ class Fermentor(object):
 
     def turn_fermwrap_on(self):
         if self.is_fermwrap:
-            print "Turning fermwrap ON for {} as temp is < {}".format(self.name, self.min_temp)
+            #print "Turning fermwrap ON for {} as temp is < {}".format(self.name, self.min_temp)
             io.output(self.fermwrap_pin, True)
             self.is_fermwrap_on = True
 
@@ -448,9 +448,11 @@ class Fermentor(object):
     def turn_fermwrap_off(self, reason = None):
         if self.is_fermwrap:
             if reason == None:
-                print "Turning fermwrap OFF for {} as temp is >= to {}".format(self.name, self.max_temp)
+                #print "Turning fermwrap OFF for {} as temp is >= to {}".format(self.name, self.max_temp)
+                pass
             else:
                 print "Turning fermwrap OFF for {}".format(reason)
+                pass
             io.output(self.fermwrap_pin, False)
             self.is_fermwrap_on = False
 
@@ -798,21 +800,23 @@ def start():
 
 
 
-            # Update Remote MySQL
-            FermentationTemperature.create(fermentor=fermentor.id,
-                                           dt=dt,
-                                           ambient_temp=fermentor.ambient_temp,
-                                           wort_temp=fermentor.wort_temp,
-                                           swamp_cooler_temp=fermentor.swamp_temp)
+                # Update Remote MySQL
+                FermentationTemperature.create(fermentor=fermentor.id,
+                                               dt=dt,
+                                               ambient_temp=fermentor.ambient_temp,
+                                               wort_temp=fermentor.wort_temp,
+                                               swamp_cooler_temp=fermentor.swamp_temp)
 
 
-            # Check Fermwraps
-            #for fermentor in FermentorList:
-            if fermentor.wort_temp < fermentor.min_temp:
-                fermentor.turn_fermwrap_on()
+                # Check Fermwraps
+                #for fermentor in FermentorList:
+                if fermentor.wort_temp < fermentor.min_temp:
+                    print "\tFermwrap=OFF as temp < {}".format(fermentor.min_temp)
+                    fermentor.turn_fermwrap_on()
 
-            if fermentor.wort_temp > fermentor.max_temp:
-                fermentor.turn_fermwrap_on()
+                if fermentor.wort_temp > fermentor.max_temp:
+                    print "\tFermwrap=ON as temp > {}".format(fermentor.max_temp)
+                    fermentor.turn_fermwrap_on()
 
             get_db().close()
 
