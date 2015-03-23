@@ -50,14 +50,17 @@ def get_active_fermentors():
 
     fermentors = []
 
-    query = (FermentationFermentor.select(FermentationFermentor, FermentationHost, FermentationProbe, FermentationFermentor, FermentationSchedule)
+    query = (FermentationFermentor.select(FermentationFermentor, FermentationHost, FermentationProbe, FermentationFermwrap, FermentationSchedule)
                 .where(FermentationFermentor.active == 1)
             .join(FermentationHost)
         .switch(FermentationFermentor)
             .join(FermentationProbe, on=FermentationProbe.fermentor)
         .switch(FermentationFermentor)
             .join(FermentationFermwrap, peewee.JOIN_LEFT_OUTER, on=FermentationFermwrap.fermentor)
-        .switch(FermentationFermentor).join(FermentationSchedule, peewee.JOIN_LEFT_OUTER, on=FermentationSchedule.fermentor).aggregate_rows())
+        .switch(FermentationFermentor)
+             .join(FermentationSchedule, peewee.JOIN_LEFT_OUTER, on=FermentationSchedule.fermentor)
+        .aggregate_rows()
+    )
 
     '''
     q_hosts = FermentationHost.select()
