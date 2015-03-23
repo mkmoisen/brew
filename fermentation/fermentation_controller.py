@@ -476,6 +476,7 @@ def fermentors_change():
 
         #create/modify brew.properties fermentor
         properties_fermentor['name'] = db_fermentor.name
+        properties_fermentor['start_date'] = db_fermentor.start_date.strftime('%Y-%m-%dT%H:%M:%S')
         properties_fermentor['start_temp'] = db_fermentor.start_temp
         properties_fermentor['temp_differential'] = db_fermentor.temp_differential
 

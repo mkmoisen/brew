@@ -524,6 +524,7 @@ class Properties(object):
             print fermentor.name, fermentor.start_date, fermentor.start_temp, fermentor.temp_differential
             f['id']=fermentor.id
             f['name']=fermentor.name
+            f['start_date']=fermentor.start_date.strftime('%Y-%m-%dT%H:%M:%S')
             f['start_temp'] = fermentor.start_temp
             f['temp_differential'] = fermentor.temp_differential
             if fermentor.fermentor_fermwraps.count() > 0:
@@ -661,6 +662,7 @@ class Properties(object):
             'fermentors':[
                 {'id':1,
                 'name':'Munich Dunkel 100% Munich',
+                'start_date':'2015-01-01T00:00:00',
                 'start_temp':50.0,
                 'temp_differential':0.25,
                 'fermwrap_pin':17,
@@ -670,6 +672,7 @@ class Properties(object):
                 ]},
                 {'id':2,
                 'name':'Munich Dunkel 100% Munich',
+                'start_date':'2015-01-02T00:00:00',
                 'start_temp':50.0,
                 'temp_differential':0.25,
                 'fermwrap_pin':17,
@@ -695,7 +698,7 @@ class Properties(object):
                           id=fermentor['id'])
             increases = [{'dt':datetime.strptime(i['dt'],'%Y-%m-%dT%H:%M:%S'),'temp':i['temp']} for i in fermentor['schedule'] ]
             increases.sort(key=lambda i:i['dt'] )
-            f.schedule = Schedule(start_temp=fermentor['start_temp'], increases=increases)
+            f.schedule = Schedule(start_date=fermentor['start_date'], start_temp=fermentor['start_temp'], increases=increases)
             for probe in fermentor['probe']:
                 f.add_probe(Probe(probe_type=probe['type'],file_name=probe['file_name']))
 
