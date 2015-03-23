@@ -154,7 +154,7 @@ class ScheduleIncrease(object):
         or
             ScheduleIncrease(t=('2015-01-01 00:00:00', 68))
         '''
-        if type(dt) == str:
+        if type(dt) == str or type(dt) == unicode:
             self.dt = datetime.strptime(dt, '%Y-%m-%dT%H:%M:%S')
         elif type(dt) == datetime:
             self.dt = dt
@@ -214,7 +214,7 @@ Schedule('2015-01-01 00:00:00', 50, [(5*24, 55),
                             (5*24 + 24 + 5*24 + 12*6, 35),])
         :return:
         '''
-        if type(start_date) == str:
+        if type(start_date) == str or type(start_date) == unicode:
             self.start_date = datetime.strptime(start_date, '%Y-%m-%dT%H:%M:%S')
         elif type(start_date) == datetime:
             self.start_date = start_date
