@@ -7,7 +7,8 @@ import socket
 from models import Probe, Heater
 from settings import BaseModel, get_db, BREW_PROPERTIES_FILE
 
-
+import traceback
+import sys
 
 try:
     import RPi.GPIO as io
@@ -514,6 +515,7 @@ class Properties(object):
         try:
             host = query.get()
         except Exception as ex:
+            traceback.print_exc(file=sys.stdout)
             raise RuntimeError("DB is screwed up, either missing host, probe or fermwrap: {}".format(ex.message))
 
         properties['updated'] = host.updated
@@ -586,10 +588,12 @@ class Properties(object):
             try:
                 properties = json.loads(properties)
             except ValueError as ex:
+                traceback.print_exc(file=sys.stdout)
                 # json file is invalid json string. Log this and get properties from db
                 print "Cannot parse json from {}. Trying DB:".format(BREW_PROPERTIES_FILE),ex.message
                 raise IOError("Cannot parse json")
         except IOError as ex:
+            traceback.print_exc(file=sys.stdout)
             # This can also be possible if its being run for the first time and the user hasn't added any fermentors?
             print "Cannot read {}. Trying DB:".format(BREW_PROPERTIES_FILE), ex.message, ex.errno
             try:
@@ -600,24 +604,29 @@ class Properties(object):
                     #with open(BREW_PROPERTIES_FILE,'w') as f:
                         #f.write(json.dumps(properties))
                 except Exception as ex:
+                    traceback.print_exc(file=sys.stdout)
                     print "Cannot write {}!".format(BREW_PROPERTIES_FILE), ex.message
 
             except peewee.OperationalError as ex:
+                traceback.print_exc(file=sys.stdout)
                 # Can't connect or query DB. You are screwed!.
                 print "cannnot connect to DB for properties: ",ex.message
 
                 # Return in case this is just normal polling with no updates gone bad
                 return
             except RuntimeError as ex:
+                traceback.print_exc(file=sys.stdout)
                 # Nothing returned from DB
                 print "Nothing returned from DB!", ex.message
                 # Return in case this is just normal polling with no updates gone bad
                 return
             except AttributeError as ex:
+                traceback.print_exc(file=sys.stdout)
                 #DB is wrong!
                 print "DB is wrong somehow!", ex.message
                 return
             except Exception as ex:
+                traceback.print_exc(file=sys.stdout)
                 #DB is wrong!
                 print "DB is wrong somehow!", ex.message
                 return
@@ -730,12 +739,15 @@ def start():
                 try:
                     fermentor.wort_temp = fermentor.wort_probe.temp # Mandatory
                 except IOError as ex:
+                    traceback.print_exc(file=sys.stdout)
                     print "Probe is probably disconnected! Cannot read wort temp. Turning off fermwrap.", ex.message
                     fermentor.turn_fermwrap_off()
                 except RuntimeError as ex:
+                    traceback.print_exc(file=sys.stdout)
                     print "RuntimeError > 25 second retyring or 185F. Cannot read wort temp. Turning off fermwrap.", ex.message
                     fermentor.turn_fermwrap_off()
                 except Exception as ex:
+                    traceback.print_exc(file=sys.stdout)
                     fermentor.turn_fermwrap_off()
                     print "Unkown Error. Cannot read wort temp. Turning off fermwrap",ex.message
 
@@ -745,6 +757,7 @@ def start():
                     except Exception as ex:
                         #Not a big deal
                         print "Cannot read ambient.", ex.message
+                        traceback.print_exc(file=sys.stdout)
                         fermentor.ambient_temp = None
                 else:
                     fermentor.ambient_temp = None
@@ -755,6 +768,7 @@ def start():
                     except Exception as ex:
                         #Not a big deal
                         print "Cannot read swamp.", ex.message
+                        traceback.print_exc(file=sys.stdout)
                         fermentor.swamp_temp = None
                 else:
                     fermentor.swamp_temp = None
@@ -796,5 +810,6 @@ def start():
 
     except Exception as ex:
         print "Unknown error: ", ex.message
+        traceback.print_exc(file=sys.stdout)
         print "Turning Fermwraps off"
         FermentorList.turn_fermwraps_off()
