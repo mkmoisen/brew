@@ -14,7 +14,7 @@ change this to a database proxy to use different dbs
 
 BREW_PROPERTIES_FILE = "brew.properties"
 
-hostnames = ['raspberrypy','raspberrypy1']
+hostnames = ['raspberrypi','raspberrypi1']
 
 try:
     from local_settings import *
