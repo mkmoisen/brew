@@ -583,6 +583,12 @@ class Properties(object):
 
         try:
             properties = cls.read_properties_file() #open(BREW_PROPERTIES_FILE,'r').readlines()
+            try:
+                properties = json.loads(properties)
+            except ValueError as ex:
+                # json file is invalid json string. Log this and get properties from db
+                print "Cannot parse json from {}. Trying DB:".format(BREW_PROPERTIES_FILE),ex.message
+                raise IOError("Cannot parse json")
         except IOError as ex:
             # This can also be possible if its being run for the first time and the user hasn't added any fermentors?
             print "Cannot read {}. Trying DB:".format(BREW_PROPERTIES_FILE), ex.message, ex.errno
@@ -615,35 +621,6 @@ class Properties(object):
                 #DB is wrong!
                 print "DB is wrong somehow!", ex.message
                 return
-
-        try:
-            properties = json.loads(properties)
-        except ValueError as ex:
-            # json file is invalid json string. Log this and get properties from db
-            print "Cannot parse json from {}. Trying DB:".format(BREW_PROPERTIES_FILE),ex.message
-            try:
-                properties = cls.read_properties_from_db()
-                print "Overwriting {} with that from db.".format(BREW_PROPERTIES_FILE)
-                try:
-                    cls.write_properties_file(properties)
-                except:
-                    print "Cannot write {}!".format(BREW_PROPERTIES_FILE)
-            except peewee.OperationalError:
-                # Can't connect or query DB. You are screwed!.
-                print "cannnot connect to DB for properties: ",ex.message
-
-                # Return in case this is just normal polling with no updates gone bad
-                return
-            except RuntimeError as ex:
-                # Nothing returned from DB
-                print "Nothing returned from DB!", ex.message
-                # Return in case this is just normal polling with no updates gone bad
-                return
-            except AttributeError as ex:
-                #DB is wrong!
-                print "DB is wrong somehow!", ex.message
-                return
-
 
         if properties['updated']:
             cls.construct_fermentor_list(properties)
