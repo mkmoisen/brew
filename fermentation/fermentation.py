@@ -811,11 +811,11 @@ def start():
                 # Check Fermwraps
                 #for fermentor in FermentorList:
                 if fermentor.wort_temp < fermentor.min_temp:
-                    print "\tFermwrap=OFF as temp < {}".format(fermentor.min_temp)
+                    print "\tFermwrap=ON as temp < {}".format(fermentor.min_temp)
                     fermentor.turn_fermwrap_on()
 
                 if fermentor.wort_temp > fermentor.max_temp:
-                    print "\tFermwrap=ON as temp > {}".format(fermentor.max_temp)
+                    print "\tFermwrap=OFF as temp > {}".format(fermentor.max_temp)
                     fermentor.turn_fermwrap_on()
 
             get_db().close()
