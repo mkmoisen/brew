@@ -514,7 +514,7 @@ def fermentors_change():
 
         ### PROBES ###
         if fermentor['id'] is not None and fermentor['probes_updated']:
-            FermentationProbe.delete().where(FermentationProbe.fermentor==db_fermentor)
+            FermentationProbe.delete().where(FermentationProbe.fermentor==db_fermentor).execute()
             #unset for editing brew.properties fermentor
             properties_fermentor['probes']=[]
 
