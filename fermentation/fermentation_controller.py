@@ -486,7 +486,7 @@ def fermentors_change():
                                                FermentationFermwrap.pin == fermentor['fermwrap'])
 
             # Set the brew.properties fermwrap
-            properties_fermentor['fermwrap_pin'] = fermentor['fermwrap']
+            properties_fermentor['fermwrap_pin'] = int(fermentor['fermwrap'])
 
             if fermentor['id'] is None:
                 if db_new_fermwrap.in_use == 1:
@@ -546,7 +546,7 @@ def fermentors_change():
             for db_schedule in db_schedule:
                 db_schedule.save()
 
-            properties_fermentor['schedule'] = [{'dt':s['dt'], 'temp':s['temp']} for s in fermentor['schedules']]
+            properties_fermentor['schedule'] = [{'dt':s['dt'], 'temp':float(s['temp'])} for s in fermentor['schedules']]
 
 
 

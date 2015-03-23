@@ -374,7 +374,7 @@ unittest.TextTestRunner(verbosity=2).run(suite)
 class TestScheduleLagerAdjustment(unittest.TestCase):
     def setUp(self):
         if not hasattr(self, 'schedule'):
-            self.schedule = Schedule('2015-01-01 00:00:00', 50, [
+            self.schedule = Schedule('2015-01-01T00:00:00', 50, [
                             ScheduleIncrease(dt=datetime(2015,01,01,00,00,00) + timedelta(hours=5*24),temp=55),
                             ScheduleIncrease(dt=datetime(2015,01,01,00,00,00) + timedelta(hours=5*24 + 12*1),temp=60),
                             ScheduleIncrease(dt=datetime(2015,01,01,00,00,00) + timedelta(hours=5*24 + 12*2),temp=65),
@@ -402,135 +402,135 @@ class TestScheduleLagerAdjustment(unittest.TestCase):
 
     def test_before_first_increase(self):
 
-        today = '2015-01-05 23:59:59'
-        today = datetime.strptime(today, '%Y-%m-%d %H:%M:%S')
+        today = '2015-01-05T23:59:59'
+        today = datetime.strptime(today, '%Y-%m-%dT%H:%M:%S')
         self.assertEquals(self.start_temp, self.schedule.get_current_temp(today, self.start_temp))
 
     def test_6_0_increase(self):
-        today = '2015-01-06 00:00:00'
-        today = datetime.strptime(today, '%Y-%m-%d %H:%M:%S')
+        today = '2015-01-06T00:00:00'
+        today = datetime.strptime(today, '%Y-%m-%dT%H:%M:%S')
         self.assertAlmostEquals(50+(55-50)/12.0, self.schedule.get_current_temp(today, self.start_temp), 7)
         #self.assertEquals(50+(55-50)/12.0, self.schedule.get_current_temp(today, self.start_temp))
         self.assertLess(self.schedule.get_current_temp(today, self.start_temp), 55)
         self.assertGreater(self.schedule.get_current_temp(today, self.start_temp),self.start_temp)
 
     def test_before_6_12_increase(self):
-        today = '2015-01-06 11:59:59'
-        today = datetime.strptime(today, '%Y-%m-%d %H:%M:%S')
+        today = '2015-01-06T11:59:59'
+        today = datetime.strptime(today, '%Y-%m-%dT%H:%M:%S')
         self.assertEquals(55, self.schedule.get_current_temp(today, self.start_temp))
 
     def test_6_12_increase(self):
-        today = '2015-01-06 12:00:00'
-        today = datetime.strptime(today, '%Y-%m-%d %H:%M:%S')
+        today = '2015-01-06T12:00:00'
+        today = datetime.strptime(today, '%Y-%m-%dT%H:%M:%S')
         #self.assertEquals(60, self.schedule.get_current_temp(today, self.start_temp))
         self.assertAlmostEquals(55+(60-55)/12.0, self.schedule.get_current_temp(today, self.start_temp), 7)
         self.assertLess(self.schedule.get_current_temp(today, self.start_temp), 60)
         self.assertGreater(self.schedule.get_current_temp(today, self.start_temp), 55)
 
     def test_before_7_0_increase(self):
-        today = '2015-01-06 23:59:59'
-        today = datetime.strptime(today, '%Y-%m-%d %H:%M:%S')
+        today = '2015-01-06T23:59:59'
+        today = datetime.strptime(today, '%Y-%m-%dT%H:%M:%S')
         self.assertEquals(60, self.schedule.get_current_temp(today, self.start_temp))
 
     def test_7_0_increase(self):
-        today = '2015-01-07 00:00:00'
-        today = datetime.strptime(today, '%Y-%m-%d %H:%M:%S')
+        today = '2015-01-07T00:00:00'
+        today = datetime.strptime(today, '%Y-%m-%dT%H:%M:%S')
         #self.assertEquals(65, self.schedule.get_current_temp(today, self.start_temp))
         self.assertAlmostEquals(60+(65-60)/12.0, self.schedule.get_current_temp(today, self.start_temp), 7)
 
     def test_before_12_00_increase_1(self):
-        today = '2015-01-08 00:00:00'
-        today = datetime.strptime(today, '%Y-%m-%d %H:%M:%S')
+        today = '2015-01-08T00:00:00'
+        today = datetime.strptime(today, '%Y-%m-%dT%H:%M:%S')
         self.assertEquals(65, self.schedule.get_current_temp(today, self.start_temp))
 
     def test_before_12_00_increase_2(self):
-        today = '2015-01-09 00:00:00'
-        today = datetime.strptime(today, '%Y-%m-%d %H:%M:%S')
+        today = '2015-01-09T00:00:00'
+        today = datetime.strptime(today, '%Y-%m-%dT%H:%M:%S')
         self.assertEquals(65, self.schedule.get_current_temp(today, self.start_temp))
 
     def test_before_12_00_increase_3(self):
-        today = '2015-01-10 00:00:00'
-        today = datetime.strptime(today, '%Y-%m-%d %H:%M:%S')
+        today = '2015-01-10T00:00:00'
+        today = datetime.strptime(today, '%Y-%m-%dT%H:%M:%S')
         self.assertEquals(65, self.schedule.get_current_temp(today, self.start_temp))
 
     def test_before_12_00_increase_4(self):
-        today = '2015-01-11 00:00:00'
-        today = datetime.strptime(today, '%Y-%m-%d %H:%M:%S')
+        today = '2015-01-11T00:00:00'
+        today = datetime.strptime(today, '%Y-%m-%dT%H:%M:%S')
         self.assertEquals(65, self.schedule.get_current_temp(today, self.start_temp))
 
     def test_before_12_00_increase_5(self):
-        today = '2015-01-11 23:59:59'
-        today = datetime.strptime(today, '%Y-%m-%d %H:%M:%S')
+        today = '2015-01-11T23:59:59'
+        today = datetime.strptime(today, '%Y-%m-%dT%H:%M:%S')
         self.assertEquals(65, self.schedule.get_current_temp(today, self.start_temp))
 
     def test_12_0_increase(self):
-        today = '2015-01-12 00:00:00'
-        today = datetime.strptime(today, '%Y-%m-%d %H:%M:%S')
+        today = '2015-01-12T00:00:00'
+        today = datetime.strptime(today, '%Y-%m-%dT%H:%M:%S')
         #self.assertEquals(60, self.schedule.get_current_temp(today, self.start_temp))
         self.assertAlmostEquals(65+(60-65)/12.0, self.schedule.get_current_temp(today, self.start_temp), 7)
 
     def test_before_12_12_increase(self):
-        today = '2015-01-12 11:59:59'
-        today = datetime.strptime(today, '%Y-%m-%d %H:%M:%S')
+        today = '2015-01-12T11:59:59'
+        today = datetime.strptime(today, '%Y-%m-%dT%H:%M:%S')
         self.assertEquals(60, self.schedule.get_current_temp(today, self.start_temp))
 
     def test_12_12_increase(self):
-        today = '2015-01-12 12:00:00'
-        today = datetime.strptime(today, '%Y-%m-%d %H:%M:%S')
+        today = '2015-01-12T12:00:00'
+        today = datetime.strptime(today, '%Y-%m-%dT%H:%M:%S')
         #self.assertEquals(55, self.schedule.get_current_temp(today, self.start_temp))
-        self.assertEquals(60+(55-60)/12.0, self.schedule.get_current_temp(today, self.start_temp), 7)
+        self.assertAlmostEquals(60+(55-60)/12.0, self.schedule.get_current_temp(today, self.start_temp), 7)
 
     def test_before_13_0_increase(self):
-        today = '2015-01-12 23:59:59'
-        today = datetime.strptime(today, '%Y-%m-%d %H:%M:%S')
+        today = '2015-01-12T23:59:59'
+        today = datetime.strptime(today, '%Y-%m-%dT%H:%M:%S')
         self.assertEquals(55, self.schedule.get_current_temp(today, self.start_temp))
 
     def test_13_0_increase(self):
-        today = '2015-01-13 00:00:00'
-        today = datetime.strptime(today, '%Y-%m-%d %H:%M:%S')
+        today = '2015-01-13T00:00:00'
+        today = datetime.strptime(today, '%Y-%m-%dT%H:%M:%S')
         self.assertAlmostEquals(55+(50-55)/12.0, self.schedule.get_current_temp(today, self.start_temp),7)
 
     def test_before_13_12_increase(self):
-        today = '2015-01-13 11:59:59'
-        today = datetime.strptime(today, '%Y-%m-%d %H:%M:%S')
+        today = '2015-01-13T11:59:59'
+        today = datetime.strptime(today, '%Y-%m-%dT%H:%M:%S')
         self.assertEquals(50, self.schedule.get_current_temp(today, self.start_temp))
 
     def test_13_12_increase(self):
-        today = '2015-01-13 12:00:00'
-        today = datetime.strptime(today, '%Y-%m-%d %H:%M:%S')
+        today = '2015-01-13T12:00:00'
+        today = datetime.strptime(today, '%Y-%m-%dT%H:%M:%S')
         #self.assertEquals(45, self.schedule.get_current_temp(today, self.start_temp))
         self.assertAlmostEquals(50+(45-50)/12.0, self.schedule.get_current_temp(today, self.start_temp), 7)
 
     def test_before_14_0_increase(self):
-        today = '2015-01-13 23:59:59'
-        today = datetime.strptime(today, '%Y-%m-%d %H:%M:%S')
+        today = '2015-01-13T23:59:59'
+        today = datetime.strptime(today, '%Y-%m-%dT%H:%M:%S')
         self.assertEquals(45, self.schedule.get_current_temp(today, self.start_temp))
 
     def test_14_0_increase(self):
-        today = '2015-01-14 00:00:00'
-        today = datetime.strptime(today, '%Y-%m-%d %H:%M:%S')
+        today = '2015-01-14T00:00:00'
+        today = datetime.strptime(today, '%Y-%m-%dT%H:%M:%S')
         #self.assertEquals(40, self.schedule.get_current_temp(today, self.start_temp))
-        self.assertEquals(45+(40-45)/12.0, self.schedule.get_current_temp(today, self.start_temp), 7)
+        self.assertAlmostEquals(45+(40-45)/12.0, self.schedule.get_current_temp(today, self.start_temp), 7)
 
     def test_before_14_12_increase(self):
-        today = '2015-01-14 11:59:59'
-        today = datetime.strptime(today, '%Y-%m-%d %H:%M:%S')
+        today = '2015-01-14T11:59:59'
+        today = datetime.strptime(today, '%Y-%m-%dT%H:%M:%S')
         self.assertEquals(40, self.schedule.get_current_temp(today, self.start_temp))
 
     def test_14_12_increase(self):
-        today = '2015-01-14 12:00:00'
-        today = datetime.strptime(today, '%Y-%m-%d %H:%M:%S')
+        today = '2015-01-14T12:00:00'
+        today = datetime.strptime(today, '%Y-%m-%dT%H:%M:%S')
         #self.assertEquals(35, self.schedule.get_current_temp(today, self.start_temp))
         self.assertAlmostEquals(40+(35-40)/12.0, self.schedule.get_current_temp(today, self.start_temp),7)
 
     def test_after_14_12_increase_1(self):
-        today = '2015-01-15 00:00:00'
-        today = datetime.strptime(today, '%Y-%m-%d %H:%M:%S')
+        today = '2015-01-15T00:00:00'
+        today = datetime.strptime(today, '%Y-%m-%dT%H:%M:%S')
         self.assertEquals(35, self.schedule.get_current_temp(today, self.start_temp))
 
     def test_after_14_12_increase_2(self):
-        today = '2015-01-16 00:00:00'
-        today = datetime.strptime(today, '%Y-%m-%d %H:%M:%S')
+        today = '2015-01-16T00:00:00'
+        today = datetime.strptime(today, '%Y-%m-%dT%H:%M:%S')
         self.assertEquals(35, self.schedule.get_current_temp(today, self.start_temp))
 
 
@@ -566,7 +566,7 @@ def getLagerSuiteAdjustment(schedule, start_temp):
 
 from datetime import datetime, timedelta
 from fermentation.fermentation import Schedule, ScheduleIncrease
-schedule = Schedule('2015-01-01 00:00:00', 50, [
+schedule = Schedule('2015-01-01T00:00:00', 50, [
                             ScheduleIncrease(dt=datetime(2015,01,01,00,00,00) + timedelta(hours=5*24),temp=55),
                             ScheduleIncrease(dt=datetime(2015,01,01,00,00,00) + timedelta(hours=5*24 + 12*1),temp=60),
                             ScheduleIncrease(dt=datetime(2015,01,01,00,00,00) + timedelta(hours=5*24 + 12*2),temp=65),
