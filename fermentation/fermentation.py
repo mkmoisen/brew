@@ -110,7 +110,9 @@ class FermentorIter(type):
     To let a static class use len() on it, __len__ must likewise be defined in the meta class
     '''
     def __iter__(cls):
+        print "CALLINT ITER ON FERMENTOR"
         for fermentor in FermentorList.fermentors:
+            print "YIELDING FERMENTOR"
             yield fermentor
 
     def __len__(cls):
@@ -131,7 +133,7 @@ class FermentorList(object):
     @classmethod
     def append(cls, fermentor):
         if isinstance(fermentor, Fermentor):
-            cls.fermentors.append(Fermentor)
+            cls.fermentors.append(fermentor)
         else:
             raise TypeError("FermentorList.append only accepts type Fermentor. Received type {}".format(type(fermentor)))
 
