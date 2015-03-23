@@ -12,6 +12,8 @@ todo:
 change this to a database proxy to use different dbs
 '''
 
+BREW_PROPERTIES_FILE = "brew.properties"
+
 try:
     from local_settings import *
 except ImportError:

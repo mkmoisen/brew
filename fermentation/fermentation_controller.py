@@ -8,11 +8,13 @@ import ast
 from controller import app
 
 from fermentation import FermentationHost, FermentationFermentor, FermentationFermwrap, FermentationProbe, \
-    FermentationTemperature, FermentationSchedule
+    FermentationTemperature, FermentationSchedule, Properties
 
 import peewee
 from settings import get_db
 import json
+
+import errno
 
 if __name__ == '__main__':
     print "fermentation main lol"
@@ -46,26 +48,46 @@ def get_active_fermentors():
     print "IS IT CLOSED YO ?", get_db().is_closed()
     get_db()
 
+    fermentors = []
 
-    '''
-    query = (FermentationFermentor.select()
+    query = (FermentationFermentor.select(FermentationFermentor, FermentationHost, FermentationProbe, FermentationFermentor, FermentationSchedule)
                 .where(FermentationFermentor.active == 1)
             .join(FermentationHost)
         .switch(FermentationFermentor)
             .join(FermentationProbe, on=FermentationProbe.fermentor)
         .switch(FermentationFermentor)
             .join(FermentationFermwrap, peewee.JOIN_LEFT_OUTER, on=FermentationFermwrap.fermentor)
-        .switch(FermentationFermentor).join(FermentationSchedule, peewee.JOIN_LEFT_OUTER, on=FermentationSchedule.fermentor)).aggregate_rows()
+        .switch(FermentationFermentor).join(FermentationSchedule, peewee.JOIN_LEFT_OUTER, on=FermentationSchedule.fermentor).aggregate_rows())
+
     '''
+    q_hosts = FermentationHost.select()
+    q_fermentors = FermentationFermentor.select().where(FermentationFermentor.name=='obama', FermentationFermentor.active==1)
+    q_probes = FermentationProbe.select().where(FermentationProbe.in_use==1)
+    q_fermwrap = FermentationFermwrap.select().where(FermentationFermwrap.in_use==1)
+    q_schedule = FermentationSchedule.select()
 
-    fermentors = []
-    for host in peewee.prefetch(FermentationHost.select(), FermentationFermentor.select(), FermentationProbe.select(), FermentationFermwrap.select(), FermentationSchedule.select()):
-        print host.hostname
+    query = peewee.prefetch(q_hosts, q_fermentors, q_probes, q_fermwrap, q_schedule)
+    print dir(query)
+    print "where = ", query.where
+    print "query = ", query
 
-        for fermentor in host.host_fermentors:
+    '''
+    '''
+    for host in peewee.prefetch(FermentationHost.select(),
+                                FermentationFermentor.select().where(FermentationFermentor.active==1),
+                                FermentationProbe.select().where(FermentationProbe.in_use==1),
+                                FermentationFermwrap.select().where(FermentationFermwrap.in_use==1),
+                                FermentationSchedule.select()):
+    '''
+    #for host in query:
+        #print host.hostname
+    for fermentor in query:
+    #    for fermentor in host.host_fermentors:
             f = {'id':fermentor.id,
-                 'hostname':host.hostname,
-                 'host_id':host.id,
+                 #'hostname':host.hostname,
+                 #'host_id':host.id,
+                 'hostname':fermentor.host.hostname,
+                 'host_id':fermentor.host.id,
                  'name':fermentor.name,
                  'start_date':fermentor.start_date.strftime('%Y-%m-%dT%H:%M:%S'),
                  'end_begin_date':fermentor.end_begin_date.strftime('%Y-%m-%dT%H:%M:%S'),
@@ -252,107 +274,94 @@ def get_probes():
 @app.route('/fermentation/')
 @app.route('/fermentation')
 def fermentor():
-
     return template('fermentors')
 
-    # Get active fermentors
-    #fermentors = get_active_fermentors()
 
 
-    '''
-    # Get hosts
-    hosts = get_hosts()
+@app.post('/fermentation/fermentor/inactivate')
+@app.post('/fermentation/fermentor/inactivate/')
+def fermentor_inactivate():
+    fermentor = json.loads(request.forms.dict.keys()[0])
+    print "fermentor = ", fermentor
 
-    hostname = socket.gethostname()
+    # Prepare to edit properties file # need to change this to account for multiple RPis
+    should_write_properties = True
+    try:
+        properties = Properties.read_properties_file()
+        try:
+            properties = json.loads(properties)
+        except ValueError as ex:
+            pass
+            # Why would this happen?
+            print "COULDNT READ JSON ", ex.message
+            should_write_properties = False
+        except Exception as ex:
+            pass
+            # Why would this happen?
+            print "COULDNT READ JSON ", ex.message
+            should_write_properties = False
+    except IOError as ex:
+        print "COULDNT READ FILE ", ex.message, ex.errno
 
-    fermwraps = [17,18,22,23,24,25] # Can I get these from the DB?
+        if ex.errno == errno.ENOENT:
+            # Cannot find file on disk. Assume this means this is the first time for the user
+            properties = Properties.blank_properties()
+        else:
+            # Maybe Read only file system or something else. Probably cannot write properties file anyways.
+            # Would it be safer to not even try writing this modified blank properties file? What if i couldn't read
+            # right now but by the end of this method could write? That would be bad!
+            properties = Properties.blank_properties()
+            should_write_properties = False
 
-    # Get dates
-    today = datetime.now()
-    four_weeks_later = today + timedelta(days=28)
-    six_weeks_later = today + timedelta(days=42)
-    today = datetime.strftime(today, '%Y-%m-%d %H:%M:%S')
-    four_weeks_later = datetime.strftime(four_weeks_later, '%Y-%m-%d %H:%M:%S')
-    six_weeks_later = datetime.strftime(six_weeks_later, '%Y-%m-%d %H:%M:%S')
+    properties['updated']=True
+    properties['fermentors'][:] = [item for item in properties['fermentors'] if item['id'] != fermentor['id']]
+    with get_db().atomic():
+        print "inactivating fermwrap"
+        is_fermwrap = False
+        try:
+            fermwrap = FermentationFermwrap.get(FermentationFermwrap.fermentor==fermentor['id'])
+            is_fermwrap = True
+        except FermentationFermwrap.DoesNotExist:
+            pass
 
-    # Get temperature Probes
-    process = os.popen('ls /sys/bus/w1/devices/ | grep 28')
-    preprocessed = process.read()
-    process.close()
-    probes = preprocessed.split('\n')[:-1]
-    probes.insert(0, 'None')
+        if is_fermwrap:
+            fermwrap.fermentor = None
+            fermwrap.in_use = 0
+            fermwrap.save()
 
-    probe_types = ['None','ambient','wort','swamp'] # Can I get these from peewee model instead?
+        print "inactivating probe"
+        for probe in FermentationProbe.select().where(FermentationProbe.fermentor==fermentor['id']):
+            probe.in_use = 0
+            probe.save()
 
-
-    variables = {#'fermentors':fermentors,
-                 'hosts':hosts,
-                 'probe_types':probe_types,
-                 'probes':probes,
-                 'fermwraps':fermwraps,
-                 'today':today,
-                 'four_weeks_later':four_weeks_later,
-                 'six_weeks_later':six_weeks_later,
-                 'hostname':hostname}
+        print "inactivating fermwrap"
+        fermentor = FermentationFermentor.get(FermentationFermentor.id==fermentor['id'])
+        fermentor.active = 0
+        fermentor.save()
 
     get_db().close()
-    '''
-    
 
-    #return template('fermentors', variables)
-
+    if should_write_properties:
+        Properties.write_properties_file(properties)
 
 
-'''
 
-        $scope.fermentors = [
-            % for fermentor in fermentors:
-                % index_order[fermentor.id] = index
-                % index += 1
-                {
-                    id:{{fermentor.id}},
-                    hostname:'{{fermentor.host.hostname}}',
-                    host_id:{{fermentor.host.id}},
-                    name:'{{fermentor.name}}',
-                    % for fermwrap in fermentor.fermentor_fermwraps:
-                    fermwrap:{{fermwrap.pin}},
-                    % end
-                    start_date:'{{fermentor.start_date}}',
-                    end_begin_date:'{{fermentor.end_begin_date}}',
-                    end_end_date:'{{fermentor.end_end_date}}',
-                    start_temp:{{fermentor.start_temp}},
-                    temp_differential:{{fermentor.temp_differential}},
-                    yeast:'{{fermentor.yeast}}',
-                    og:{{fermentor.og}},
-                    fg:{{!'null' if fermentor.fg is None else fermentor.fg}},
-                    material:'{{fermentor.material}}',
-                    probes:[
-                        % for probe in fermentor.fermentor_probes:
-                            {
-                                file_name:'{{probe.file_name}}',
-                                type:'{{probe.type}}'
-                            },
-                        % end
-                    ],schedules:[
-                        % schedule_index = 0
-                        % for schedule in fermentor.fermentor_schedules:
-                            {
-                                dt:'{{schedule.dt}}',
-                                temp:{{schedule.temp}},
-                                index:{{schedule_index}}
-                            },
-                            % schedule_index += 1
-                        % end
-                    ],
-                },
-            % end
-        ];
-'''
 
 
 @app.post('/fermentation/fermentor/change/')
 @app.post('/fermentation/fermentor/change')
 def fermentors_change():
+    '''
+    One tricky thing here is how to update the brew.properties file on disk.
+    Do I pull the outdated properties from file into memory, and operate on them independently
+    of the database transaction?
+
+    The goal is to never be dependent on the stupid remote godaddy mysql db again.
+
+    I also need to edit the brew.properties on ALL the RPis, or force the user to only edit the RPi on each host individually
+
+    :return:
+    '''
 
     '''
     print "hai"
@@ -372,20 +381,57 @@ def fermentors_change():
     print "\n\nsuper lol"
     print fermentor
 
+    data = {}
+
+    # Prepare to edit properties file # need to change this to account for multiple RPis
+    should_write_properties = True
+    try:
+        properties = Properties.read_properties_file()
+        try:
+            properties = json.loads(properties)
+        except ValueError as ex:
+            pass
+            # Why would this happen?
+            print "COULDNT READ JSON ", ex.message
+            should_write_properties = False
+        except Exception as ex:
+            pass
+            # Why would this happen?
+            print "COULDNT READ JSON ", ex.message
+            should_write_properties = False
+    except IOError as ex:
+        print "COULDNT READ FILE ", ex.message, ex.errno
+
+        if ex.errno == errno.ENOENT:
+            # Cannot find file on disk. Assume this means this is the first time for the user
+            properties = Properties.blank_properties()
+        else:
+            # Maybe Read only file system or something else. Probably cannot write properties file anyways.
+            # Would it be safer to not even try writing this modified blank properties file? What if i couldn't read
+            # right now but by the end of this method could write? That would be bad!
+            properties = Properties.blank_properties()
+            should_write_properties = False
+
+
+
+    properties['updated']=True
 
     with get_db().atomic():
         db_fermentor = None
 
         print "id is ", fermentor['id']
 
+        properties_fermentor = {}
+
         if fermentor['id'] is None:
-            print "new lol\n\n\n"
+            # Initialize the brew.properteis fermentor for new fermentor
+
             db_fermentor = FermentationFermentor(
                 id = fermentor['id']
                 ,name = fermentor['name']
-                ,start_date = datetime.strptime(fermentor['start_date'], '%Y-%m-%dT%H:%M:%S.%fZ')
-                ,end_begin_date = datetime.strptime(fermentor['end_begin_date'], '%Y-%m-%dT%H:%M:%S.%fZ')
-                ,end_end_date = datetime.strptime(fermentor['end_end_date'], '%Y-%m-%dT%H:%M:%S.%fZ')
+                ,start_date = datetime.strptime(fermentor['start_date'], '%Y-%m-%dT%H:%M:%S')
+                ,end_begin_date = datetime.strptime(fermentor['end_begin_date'], '%Y-%m-%dT%H:%M:%S')
+                ,end_end_date = datetime.strptime(fermentor['end_end_date'], '%Y-%m-%dT%H:%M:%S')
                 ,yeast = fermentor['yeast']
                 ,og = fermentor['og']
                 ,fg = fermentor['fg']
@@ -394,12 +440,20 @@ def fermentors_change():
                 ,material = fermentor['material']
                 ,host = fermentor['host_id']
             )
+
+            # Take care of fermwrap pin below
         else :
+            # Get fermentor from brew.properteis on disk if this is an update
+            properties_fermentor = next((item for item in properties['fermentors'] if item['id'] == fermentor['id']), None)
+
+            if properties_fermentor is None:
+                #TODO: This is a big mistake if this line gets triggered. Either I'm trying to update the wrong RPi or something catastrophic happened
+                raise Exception("NOOB")
             db_fermentor = FermentationFermentor.get(id=fermentor['id'])
             db_fermentor.name = fermentor['name']
-            db_fermentor.start_date = datetime.strptime(fermentor['start_date'], '%Y-%m-%dT%H:%M:%S.%fZ')
-            db_fermentor.end_begin_date = datetime.strptime(fermentor['end_begin_date'], '%Y-%m-%dT%H:%M:%S.%fZ')
-            db_fermentor.end_end_date = datetime.strptime(fermentor['end_end_date'], '%Y-%m-%dT%H:%M:%S.%fZ')
+            db_fermentor.start_date = datetime.strptime(fermentor['start_date'], '%Y-%m-%dT%H:%M:%S')
+            db_fermentor.end_begin_date = datetime.strptime(fermentor['end_begin_date'], '%Y-%m-%dT%H:%M:%S')
+            db_fermentor.end_end_date = datetime.strptime(fermentor['end_end_date'], '%Y-%m-%dT%H:%M:%S')
             db_fermentor.yeast = fermentor['yeast']
             db_fermentor.og = fermentor['og']
             db_fermentor.fg = fermentor['fg']
@@ -408,17 +462,30 @@ def fermentors_change():
             db_fermentor.material = fermentor['material']
             db_fermentor.host = fermentor['host_id']
 
-        ''' WTF TRANSACTIONS DONT WORK ???? '''
 
         db_fermentor.save()
 
+        if fermentor['id'] is None:
+            properties_fermentor['id'] = db_fermentor.id
+            properties_fermentor['probes'] = []
+            properties_fermentor['schedule'] = []
+
+        #create/modify brew.properties fermentor
+        properties_fermentor['name'] = db_fermentor.name
+        properties_fermentor['start_temp'] = db_fermentor.start_temp
+        properties_fermentor['temp_differential'] = db_fermentor.temp_differential
 
 
 
+
+        ## FERMWRAP ##
         if fermentor['fermwrap_updated']:
 
             db_new_fermwrap = FermentationFermwrap.get(FermentationFermwrap.host==db_fermentor.host,
                                                FermentationFermwrap.pin == fermentor['fermwrap'])
+
+            # Set the brew.properties fermwrap
+            properties_fermentor['fermwrap_pin'] = fermentor['fermwrap']
 
             if fermentor['id'] is None:
                 if db_new_fermwrap.in_use == 1:
@@ -433,9 +500,17 @@ def fermentors_change():
             db_new_fermwrap.in_use = 1
             db_new_fermwrap.save()
 
+        else:
+            # Set the brew.properties fermwrap
+            properties_fermentor['fermwrap_pin'] = None # User isn't using fermwrap for some reason
 
+
+
+        ### PROBES ###
         if fermentor['id'] is not None and fermentor['probes_updated']:
             FermentationProbe.delete().where(FermentationProbe.fermentor==db_fermentor)
+            #unset for editing brew.properties fermentor
+            properties_fermentor['probes']=[]
 
         if fermentor['id'] is None or fermentor['probes_updated']:
             db_probes = [FermentationProbe(
@@ -449,14 +524,20 @@ def fermentors_change():
                 print "db_probe fermentor = ", db_probe.fermentor, "id = ", db_probe.fermentor.id
                 db_probe.save()
 
-        if fermentor['id'] is not None and fermentor['schedule_updated']:
-            FermentationSchedule.select().where(FermentationSchedule.fermentor==db_fermentor).execute()
+            properties_fermentor['probes'] = [{'file_name':p['file_name'], 'type':p['type']} for p in fermentor['probes']]
 
+
+
+        ### SCHEDULE ###
+        if fermentor['id'] is not None and fermentor['schedule_updated']:
+            FermentationSchedule.delete().where(FermentationSchedule.fermentor==db_fermentor).execute()
+            # Unset for brew.properties fermentor
+            properties_fermentor['schedule'] = []
 
         if fermentor['id'] is None or fermentor['schedule_updated']:
 
             db_schedule = [FermentationSchedule(
-                dt=schedule['dt']
+                dt=schedule['dt'] # ?? How is this parsing to the correct date? Is this Peewee?
                 ,temp=schedule['temp']
                 ,fermentor=db_fermentor
             ) for schedule in fermentor['schedules']]
@@ -464,31 +545,46 @@ def fermentors_change():
             for db_schedule in db_schedule:
                 db_schedule.save()
 
+            properties_fermentor['schedule'] = [{'dt':s['dt'], 'temp':s['temp']} for s in fermentor['schedules']]
 
 
-        db_probes = []
-        if fermentor['id'] is not None:
-            FermentationProbe.delete().where(FermentationProbe.fermentor == db_fermentor).execute()
 
+        if fermentor['id'] is None:
+            response.status = 201
+            data['fermentor_id']=db_fermentor.id
+        else:
+            response.status = 200
 
-        db_probes = [FermentationProbe(
-            file_name=probe['file_name']
-            ,type = probe['type']
-            ,fermentor=db_fermentor
-            ,host=db_fermentor.host
-        ) for probe in fermentor['probes']]
+        # Put brew.properties fermentor back in file
+        if fermentor['id'] is None:
+            properties['fermentors'].append(properties_fermentor)
+        # for edited fermentors, arrays should have a reference pointer to the dict I just edited. It should be good to save now.
 
-        for db_probe in db_probes:
-            db_probe.save()
+        ### OK what if it fails to write here?
+        # If the file system is read only, that is fine because poll will pick it up from DB.
+        # But if its just a temporary write problem, then poll will read from outdated file system!
+        if should_write_properties:
+            Properties.write_properties_file(properties)
 
-        #raise Exception("LOL")
 
     get_db().close()
 
+
+
+
+    return json.dumps(data)
+
+
     # This should return some 200 message probably.
     #if fermentor['id'] == '':
-    response.status = 201
 
 
 
 
+test = [{'id':1,'name':'matt'}, {'id':2,'name':'mark'}]
+
+lol = next((item for item in test if item['name'] == 'matt'), None)
+
+lol['name']='LOLOL'
+lol
+test

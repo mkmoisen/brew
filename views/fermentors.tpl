@@ -166,16 +166,15 @@
         <TBODY>
             <TR ng-repeat="probe in fermentor.probes">
                 <TD>
-                    <SELECT ng-model="probe.file_name">
+                    <SELECT ng-model="probe.file_name" ng-options="probe for probe in probes">
 
-                            <OPTION ng_repeat="probe in probes" value="{{'{{probe}}'}}">{{'{{probe}}'}}</OPTION>
+
 
                     </SELECT>
                 </TD>
                 <TD>
-                    <SELECT ng-model="probe.type">
+                    <SELECT ng-model="probe.type" ng-options="probe_type for probe_type in probe_types">
 
-                            <OPTION ng-repeat="probe_type in probe_types" value="{{'{{probe_type}}'}}">{{'{{probe_type}}'}}</OPTION>
 
                     </SELECT>
                 </TD>
@@ -228,12 +227,69 @@
 
 </DIV>
 
+<DIV id="inactivateModel" class="modal fade">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"></button>
+                <h4 class="modal-title">Confirmation</h4>
+            </div>
+            <div class="modal-body">
+                <p>Do you really wish to inactivate this fermentor?</p>
+                <p class="text-danger"><small>You will not be able to reactivate it.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary">Inactivate Fermentor</button>
+            </div>
+        </div>
+    </div>
+</DIV>
+
 
 
 <script>
     angular.module('myApp', []).controller('fermentorController', ['$scope',  '$http', function($scope, $http) {
 
         console.log("WTF");
+
+        $scope.inactivateFermentor = function(id) {
+            $http.post('/fermentation/fermentor/inactivate', angular.toJson({'id':id}))
+            .success(function(data, status, headers, config) {
+                // Need a way to iterate over the key, value pairs in index_order (Remember index order is of form {fermentor_id:index} )
+                // and decrement each value by one where the value > id
+                for (var key in $scope.index_order) {
+                    if ($scope.index_order[key] > $scope.index_order[id]) {
+                        $scope.index_order[key]--;
+                    }
+                }
+
+                console.log("slicing");
+                console.log("index is " + $scope.index_order[id])
+                $scope.fermentors.splice($scope.index_order[id], 1);
+                console.log(JSON.stringify($scope.fermentors));
+
+                delete $scope.index_order[id];
+            })
+            .error(function(data, status, headers, config) {
+
+            });
+        }
+
+        $scope.remove_schedule = function(index) {
+            //alert("index is " + index + " length is " + $scope.fermentor.schedules.length + "array is " + JSON.stringify($scope.fermentor.schedules));
+            console.log("index = " + index);
+            console.log("$scope.fermentor.schedules.length = " + $scope.fermentor.schedules.length);
+            console.log("$scope.fermentor.schedules = " + angular.toJson($scope.fermentor.schedules));
+            if ($scope.fermentor.schedules.length == 1) {
+                $scope.is_scheduled = false; // Turn on that button
+            }
+            /* Shift all the following schedule's index down by one */
+            for (var i = index + 1; i < $scope.fermentor.schedules.length; i++) {
+                $scope.fermentor.schedules[i].index-=1;
+            }
+            $scope.fermentor.schedules.splice(index, 1);
+        }
 
         $scope.update = function() {
             console.log("are probes changed yo? " + $scope.fermentor.probes_updated);
@@ -243,9 +299,10 @@
             console.log("$scope.fermentor = " + angular.toJson($scope.fermentor));
 
             $http.post('/fermentation/fermentor/change', angular.toJson($scope.fermentor))
-            .success(function(response) {
+            .success(function(data, status, headers, config) {
                 console.log("its a success!");
                 if ($scope.create) {
+                    $scope.fermentor.id = data['fermentor_id']
                     $scope.fermentors.push($scope.fermentor); // Add created fermentor to array to display it in list
                     $scope.index_order[$scope.fermentor.id]=$scope.next_index; // Add new fermentor to index object
                     $scope.next_index += 1; // Increment index for next time in case user creates another fermentor
@@ -457,11 +514,12 @@
                 var m = new moment($scope.fermentor.schedules[i].dt);
                 m.add(12, 'hours');
                 $scope.fermentor.schedules[i].dt = m.format('YYYY-MM-DDTHH:mm:ss');
-                
+
+
             }
         }
         $scope.decrease_schedule = function(index) {
-            for (var i = index; i < scope.fermentor.schedules.length; i++) {
+            for (var i = index; i < $scope.fermentor.schedules.length; i++) {
                 var m = new moment($scope.fermentor.schedules[i].dt);
                 m.subtract(12, 'hours');
                 $scope.fermentor.schedules[i].dt = m.format('YYYY-MM-DDTHH:mm:ss');

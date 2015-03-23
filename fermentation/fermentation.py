@@ -5,7 +5,9 @@ import json
 import socket
 
 from models import Probe, Heater
-from settings import BaseModel, get_db
+from settings import BaseModel, get_db, BREW_PROPERTIES_FILE
+
+
 
 try:
     import RPi.GPIO as io
@@ -145,23 +147,22 @@ class FermentorList(object):
 
 
 class ScheduleIncrease(object):
-    def __init__(self, hours=None, temp=None, t=None):
+    def __init__(self, dt=None, temp=None):
         '''
         init expects either:
             ScheduleIncrease(date='2015-01-01 00:00:00', 68)
         or
             ScheduleIncrease(t=('2015-01-01 00:00:00', 68))
         '''
-        if hours is not None and temp is not None and t is None:
-            self.hours = hours
-            self.temp = temp
-        elif t is not None and hours is None and temp is None:
-            self.hours = t[0]
-            self.temp = t[1]
+        if type(dt) == str:
+            self.dt = datetime.strptime(dt, '%Y-%m-%dT%H:%M:%S')
+        elif type(dt) == datetime:
+            self.dt = dt
         else:
-            raise RuntimeError('Constructor for ScheduleIncrease should either have (date, temp) or (t)')
+            raise TypeError('dt needs to be str or datetime, not {}'.format(type(dt)))
 
-        self.dt = None
+        self.temp = temp
+
     def __gt__(self, other):
         if self.dt > other.dt:
             return True
@@ -173,7 +174,7 @@ class ScheduleIncrease(object):
         return False
 
     def __str__(self):
-        return 'ScheduleIncrease: dt={}, temp={}'.format(self.dt, self.temp)
+        return 'ScheduleIncrease(dt={}, temp={})'.format(self.dt, self.temp)
     def __repr__(self):
         return str(self)
 
@@ -214,7 +215,7 @@ Schedule('2015-01-01 00:00:00', 50, [(5*24, 55),
         :return:
         '''
         if type(start_date) == str:
-            self.start_date = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+            self.start_date = datetime.strptime(start_date, '%Y-%m-%dT%H:%M:%S')
         elif type(start_date) == datetime:
             self.start_date = start_date
         else:
@@ -226,10 +227,80 @@ Schedule('2015-01-01 00:00:00', 50, [(5*24, 55),
         # TODO: Change this to dt instead of hours
         # TODO: If end user says temp should increase 5 degrees in 12 hours,
         # TODO: I should divide 5/12 = 0.41*F/hr and then add new increases appropriately
-        for increase in increases:
-            increase.dt = self.start_date + timedelta(hours=increase.hours)
-            self.increases.append(increase)
+        #for increase in increases:
+        #    increase.dt = self.start_date + timedelta(hours=increase.hours)
+        #    self.increases.append(increase)
         # Should I sort by date time ascending here as a sanity check? Probably
+        self.increases = increases
+
+        # Add start date/temp as first schedule
+
+        #self.increases.insert(0, ScheduleIncrease(dt=self.start_date, temp=self.start_temp))
+        self.increases.sort(key=lambda increase:increase.dt)
+
+        computed_increases = []
+
+        previous = ScheduleIncrease(dt=self.start_date, temp=self.start_temp)
+
+        for i in xrange(len(self.increases)):
+
+            '''
+            # Original
+            if i == len(self.increases) - 1:
+                temp_difference = current.temp - previous.temp
+                time_difference = (current.dt - previous.dt).total_seconds() / 60 / 60
+                print "time diff between {} and {} is {}".format(current.dt, previous.dt, time_difference)
+            else:
+                next = self.increases[i+1]
+                temp_difference = next.temp - current.temp
+                time_difference = (next.dt - current.dt).total_seconds() / 60 / 60 #This this to be int
+                print "time diff between {} and {} is {}".format(next.dt, current.dt, time_difference)
+            '''
+
+            '''
+            # Second try using previous for temp and time difference
+            current = self.increases[i]
+            temp_difference = current.temp - previous.temp
+            time_difference = (current.dt - previous.dt).total_seconds() / 60 / 60
+            print "time diff between {} and {} is {}".format(current.dt, previous.dt, time_difference)
+            '''
+
+            # Third try using previous for temp, but next for time
+            current = self.increases[i]
+            temp_difference = current.temp - previous.temp
+            if i == len(self.increases) - 1:
+                time_difference = (current.dt - previous.dt).total_seconds() / 60 / 60
+                print "time diff between {} and {} is {}".format(current.dt, previous.dt, time_difference)
+            else:
+                next = self.increases[i+1]
+                time_difference = (next.dt - current.dt).total_seconds() / 60 / 60 #This this to be int
+                print "time diff between {} and {} is {}".format(next.dt, current.dt, time_difference)
+
+
+
+            if time_difference > 12.0:
+                time_difference = 12.0
+            print "\t",time_difference
+            ratio = temp_difference/ time_difference
+
+            time_difference = int(round(time_difference))
+
+            # i = hours
+            #for i in xrange(1, time_difference + 1):
+            for i in xrange(time_difference):
+                computed_increases.append(ScheduleIncrease(
+                    dt = current.dt + timedelta(hours = i),
+                    temp = previous.temp + ratio*(i+1)
+                ))
+
+            previous = current
+
+        #self.increases.extend(computed_increases)
+        self.increases = computed_increases
+        self.increases.sort(key=lambda increase: increase.dt)
+
+
+
         '''
         sorted_increases = increases[:]
         sorted_increases.sort(lambda increase: increase.dt)
@@ -258,13 +329,14 @@ Schedule('2015-01-01 00:00:00', 50, [(5*24, 55),
 
         to_pop = []
         for i in range(0, len(self.increases)):
-            print "today=",today
-            print "self.increases[i].dt=",self.increases[i]
+            #print "today=",today
+            #print "self.increases[i].dt=",self.increases[i]
             if i != len(self.increases) - 1:
-                print "self.increases[i+1]=",self.increases[i+1]
+                #print "self.increases[i+1]=",self.increases[i+1]
+                pass
             # today > self.increases[len(self.increases) - 1].dt
             if i == len(self.increases) - 1:
-                print "last in array i=",i,self.increases[i]
+                #print "last in array i=",i,self.increases[i]
                 if today >= self.increases[i].dt:
                     temp = self.increases[i].temp
                     break
@@ -272,24 +344,24 @@ Schedule('2015-01-01 00:00:00', 50, [(5*24, 55),
                     raise RuntimeError("NOOOB NOT POSSIBLE IF ARRAY ORDERED CORRECTLY!")
             # today < self.increases[0]
             elif i == 0 and today < self.increases[i].dt and today < self.increases[i + 1].dt:
-                    print today, "<", self.increases[i].dt, "and", today,"<", self.increases[i + 1].dt
-                    print "today is less than first increase",self.increases[i]
+                    #print today, "<", self.increases[i].dt, "and", today,"<", self.increases[i + 1].dt
+                    #print "today is less than first increase",self.increases[i]
                     temp = start_temp
                     break
             elif today >= self.increases[i].dt and today < self.increases[i + 1].dt:
-                print today, ">=", self.increases[i].dt, "and", today, "<", self.increases[i+1].dt
+                #print today, ">=", self.increases[i].dt, "and", today, "<", self.increases[i+1].dt
                 temp = self.increases[i].temp
                 break
             elif today > self.increases[i].dt and today >= self.increases[i+1].dt: ##
-                print today, ">", self.increases[i].dt, "and" ,today, ">=" ,self.increases[i+1].dt
-                print "popping ",self.increases[i]
+                #print today, ">", self.increases[i].dt, "and" ,today, ">=" ,self.increases[i+1].dt
+                #print "popping ",self.increases[i]
                 # remove this and the else after completion
                 to_pop.append(i)
             else:
                 print "NOOOOOOOOB else condition"
 
         if to_pop:
-            print "popping ",to_pop[0],len(to_pop), "len of increases=", len(self.increases)
+            #print "popping ",to_pop[0],len(to_pop), "len of increases=", len(self.increases)
             del self.increases[to_pop[0]:len(to_pop)]
 
         return temp
@@ -313,7 +385,7 @@ print schedule.increases
 start_temp=0
 
 today = '2015-01-30 00:00:00'
-today = datetime.strptime(today, '%Y-%m-%d %H:%M:%S')
+today = datetime.strptime(today, '%Y-%m-%dT%H:%M:%S')
 print schedule.get_current_temp(today, start_temp)
 print schedule.increases
 
@@ -394,12 +466,27 @@ class Fermentor(object):
         return current_temp + self.temp_differential
 
 
+
+
+
+
+
+
+
+
+
 class Properties(object):
     current_poll_count = 0
     POLL_COUNT_MAX = 30
 
     @classmethod
     def read_properties_from_db(cls):
+        '''
+        The only time I should get the properties file from the DB is if I broke one raspberrypi and needed to
+        get a new one up and running for previously active fermentors.
+        
+        The goal now is to always read properties from disk so as to not be dependent on remote godaddy mysql.
+        '''
         get_db()
         query = (FermentationHost.select()
                     .where(FermentationHost.hostname==socket.gethostname())
@@ -452,18 +539,31 @@ class Properties(object):
             f['schedule'] = []
             for schedule in fermentor.fermentor_schedules:
                 print schedule.dt, schedule.temp
-                f['schedule'].append({'dt':schedule.dt.strftime('%Y-%m-%d %H:%M:%S'), 'temp':schedule.temp})
+                f['schedule'].append({'dt':schedule.dt.strftime('%Y-%m-%dT%H:%M:%S'), 'temp':schedule.temp})
             properties['fermentors'].append(f)
         properties['fermentors'].sort(key=lambda f:f['name'])
 
         return properties
 
+    @classmethod
+    def read_properties_file(cls):
+        properties = open(BREW_PROPERTIES_FILE,'r').readline()
+        return properties
+    
+    @classmethod
+    def write_properties_file(cls, properties):
+        properties = json.dumps(properties)
+        with open(BREW_PROPERTIES_FILE,'w') as f:
+            f.write(properties)
 
-
-
+    @classmethod
+    def blank_properties(cls):
+        return {'updated':True,'hostname':socket.gethostname(), 'fermentors':[]}
+        
 
     @classmethod
     def poll_batches(cls, start=False):
+        
         '''
         Check local file for updates.
 
@@ -481,17 +581,19 @@ class Properties(object):
             updated = True
 
         try:
-            properties = open('brew.properties','r').readlines()
+            properties = cls.read_properties_file() #open(BREW_PROPERTIES_FILE,'r').readlines()
         except IOError as ex:
-            print "Cannot read brew.properties. Trying DB:", ex.message
+            # This can also be possible if its being run for the first time and the user hasn't added any fermentors?
+            print "Cannot read {}. Trying DB:".format(BREW_PROPERTIES_FILE), ex.message, ex.errno
             try:
                 properties = cls.read_properties_from_db()
-                print "Overwriting brew.properties with that from db."
+                print "Overwriting {} with that from db.".format(BREW_PROPERTIES_FILE)
                 try:
-                    with open('brew.properties','w') as f:
-                        f.write(json.dumps(properties))
-                except:
-                    print "Cannot write brew.properties!"
+                    cls.write_properties_file(properties)
+                    #with open(BREW_PROPERTIES_FILE,'w') as f:
+                        #f.write(json.dumps(properties))
+                except Exception as ex:
+                    print "Cannot write {}!".format(BREW_PROPERTIES_FILE), ex.message
 
             except peewee.OperationalError as ex:
                 # Can't connect or query DB. You are screwed!.
@@ -508,14 +610,23 @@ class Properties(object):
                 #DB is wrong!
                 print "DB is wrong somehow!", ex.message
                 return
+            except Exception as ex:
+                #DB is wrong!
+                print "DB is wrong somehow!", ex.message
+                return
 
         try:
             properties = json.loads(properties)
         except ValueError as ex:
             # json file is invalid json string. Log this and get properties from db
-            print "Cannot parse json from brew.properties. Trying DB: ",ex.message
+            print "Cannot parse json from {}. Trying DB:".format(BREW_PROPERTIES_FILE),ex.message
             try:
                 properties = cls.read_properties_from_db()
+                print "Overwriting {} with that from db.".format(BREW_PROPERTIES_FILE)
+                try:
+                    cls.write_properties_file(properties)
+                except:
+                    print "Cannot write {}!".format(BREW_PROPERTIES_FILE)
             except peewee.OperationalError:
                 # Can't connect or query DB. You are screwed!.
                 print "cannnot connect to DB for properties: ",ex.message
@@ -534,21 +645,22 @@ class Properties(object):
 
 
         if properties['updated']:
-            updated = True
+            cls.construct_fermentor_list(properties)
 
         if not updated:
             return
 
-        cls.construct_fermentor_list(properties)
+        
 
     @classmethod
-    def construct_fermentor_list(properties):
+    def construct_fermentor_list(cls, properties):
         '''
-        File is a JSON string in the following form:
+        properties is a dict of a JSON string in the following form:
 
             {'updated':True, 'hostname':'raspberrypi',
             'fermentors':[
-                {'name':'Munich Dunkel 100% Munich',
+                {'id':1,
+                'name':'Munich Dunkel 100% Munich',
                 'start_temp':50.0,
                 'temp_differential':0.25,
                 'fermwrap_pin':17,
@@ -556,7 +668,8 @@ class Properties(object):
                     {'file_name':'28-1234567890', 'type':'wort'},
                     {'file_name':'28-0987654321', 'type':'ambient'}
                 ]},
-                {'name':'Munich Dunkel 100% Munich',
+                {'id':2,
+                'name':'Munich Dunkel 100% Munich',
                 'start_temp':50.0,
                 'temp_differential':0.25,
                 'fermwrap_pin':17,
@@ -565,9 +678,9 @@ class Properties(object):
                     {'file_name':'28-0987654321', 'type':'ambient'}
                 ],
                 'schedule': [
-                    {'dt':'2015-01-03 00:00:00', 'temp':55},
-                    {'dt':'2015-01-03 12:00:00', 'temp':60},
-                    {'dt':'2015-01-04 00:00:00', 'temp':65}
+                    {'dt':'2015-01-03T00:00:00', 'temp':55},
+                    {'dt':'2015-01-03T12:00:00', 'temp':60},
+                    {'dt':'2015-01-04T00:00:00', 'temp':65}
                     ]
                 }
             ]}
@@ -580,11 +693,26 @@ class Properties(object):
                           temp_differential=fermentor['temp_differential'],
                           fermwrap_pin=fermentor['fermwrap_pin'],
                           id=fermentor['id'])
-            increases = [{'dt':datetime.strptime(i['dt'],'%Y-%m-%d %H:%M:%S'),'temp':i['temp']} for i in fermentor['schedule'] ]
+            increases = [{'dt':datetime.strptime(i['dt'],'%Y-%m-%dT%H:%M:%S'),'temp':i['temp']} for i in fermentor['schedule'] ]
             increases.sort(key=lambda i:i['dt'] )
             f.schedule = Schedule(start_temp=fermentor['start_temp'], increases=increases)
             for probe in fermentor['probe']:
                 f.add_probe(Probe(probe_type=probe['type'],file_name=probe['file_name']))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
