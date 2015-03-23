@@ -816,7 +816,7 @@ def start():
 
                 if fermentor.wort_temp > fermentor.max_temp:
                     print "\tFermwrap=OFF as temp > {}".format(fermentor.max_temp)
-                    fermentor.turn_fermwrap_on()
+                    fermentor.turn_fermwrap_off()
 
             get_db().close()
 
