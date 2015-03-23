@@ -507,7 +507,8 @@ def fermentors_change():
 
         else:
             # Set the brew.properties fermwrap
-            properties_fermentor['fermwrap_pin'] = None # User isn't using fermwrap for some reason
+            if fermentor['id'] is None:
+                properties_fermentor['fermwrap_pin'] = None # User isn't using fermwrap for some reason
 
 
 
