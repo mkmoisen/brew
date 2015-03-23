@@ -413,7 +413,7 @@ class Fermentor(object):
         self.id = id # This is the database id from peewee
 
         if fermwrap_pin is not None:
-            self.set_fermwrap(fermwrap_pin)
+            self.set_fermwrap(int(fermwrap_pin)) # Int in the event ui screws up and saves it as string
 
         FermentorList.append(self) # Necessary for FermentorList to be iterable
 
