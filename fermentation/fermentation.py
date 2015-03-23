@@ -110,9 +110,7 @@ class FermentorIter(type):
     To let a static class use len() on it, __len__ must likewise be defined in the meta class
     '''
     def __iter__(cls):
-        print "CALLINT ITER ON FERMENTOR"
         for fermentor in FermentorList.fermentors:
-            print "YIELDING FERMENTOR"
             yield fermentor
 
     def __len__(cls):
@@ -468,6 +466,15 @@ class Fermentor(object):
         current_temp = self.schedule.get_current_temp(start_temp=self.start_temp)
         return current_temp + self.temp_differential
 
+    def __str__(self):
+        line = 'Name: {}\n'.format(self.name)
+        line += 'Temp range: {} - {}\n'.format(self.min_temp, self.max_temp)
+        if self.is_fermwrap:
+            line += 'Fermwrap pin: {}'.format(self.fermwrap_pin)
+        else:
+            line += 'I am not fermwrapped\n'
+        for probe in self.probes:
+            line += 'Probe {} - {}'.format(probe.probe_type, probe.file_name)
 
 
 
@@ -727,9 +734,12 @@ def start():
             else:
                 Properties.current_poll_count = 0
                 Properties.poll_batches()
+                for fermentor in FermentorList:
+                    print fermentor
+                    print "\n"
 
 
-
+            get_db()
 
             dt = datetime.now()
 
@@ -794,15 +804,18 @@ def start():
 
 
             # Check Fermwraps
-            for fermentor in FermentorList:
-                if fermentor.wort_temp < fermentor.min_temp:
-                    fermentor.turn_fermwrap_on()
+            #for fermentor in FermentorList:
+            if fermentor.wort_temp < fermentor.min_temp:
+                fermentor.turn_fermwrap_on()
 
-                if fermentor.wort_temp > fermentor.max_temp:
-                    fermentor.turn_fermwrap_on()
+            if fermentor.wort_temp > fermentor.max_temp:
+                fermentor.turn_fermwrap_on()
+
+            get_db().close()
 
 
             # Sleep
+            print "\n"
             time.sleep(5)
 
 
