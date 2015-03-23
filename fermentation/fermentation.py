@@ -77,9 +77,9 @@ class FermentationProbe(BaseModel):
 class FermentationTemperature(BaseModel):
     fermentor = peewee.ForeignKeyField(FermentationFermentor, related_name="fermentor_temperatures")
     dt = peewee.DateTimeField()
-    ambient_temp = peewee.DoubleField()
+    ambient_temp = peewee.DoubleField(null=True)
     wort_temp = peewee.DoubleField()
-    swamp_cooler_temp = peewee.DoubleField()
+    swamp_cooler_temp = peewee.DoubleField(null=True)
 
     class Meta:
         db_table = 'fermentation_temperature'
@@ -423,13 +423,10 @@ class Fermentor(object):
     #def __str__(self):
 
     def add_probe(self, probe):
-        print "calling add_probe"
         self.probes.append(probe)
         if probe.probe_type == 'wort':
-            print "probe_type is wort"
             self.wort_probe = probe
         elif probe.probe_type == 'ambient':
-            print "probe type is ambient"
             self.ambient_probe = probe
         elif probe.probe_type == 'swamp':
             self.swamp_probe = probe
