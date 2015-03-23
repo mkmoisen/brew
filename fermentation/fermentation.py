@@ -190,8 +190,6 @@ class Schedule(object):
 
     # replace this with def__init__(self, start_temp, increases):
     def __init__(self, start_date, start_temp, increases):
-        print "**** shchedule = "
-        print increases
         '''
 
         :param start_date: Day the beer was pitched
@@ -272,17 +270,17 @@ Schedule('2015-01-01 00:00:00', 50, [(5*24, 55),
             temp_difference = current.temp - previous.temp
             if i == len(self.increases) - 1:
                 time_difference = (current.dt - previous.dt).total_seconds() / 60 / 60
-                print "time diff between {} and {} is {}".format(current.dt, previous.dt, time_difference)
+                #print "time diff between {} and {} is {}".format(current.dt, previous.dt, time_difference)
             else:
                 next = self.increases[i+1]
                 time_difference = (next.dt - current.dt).total_seconds() / 60 / 60 #This this to be int
-                print "time diff between {} and {} is {}".format(next.dt, current.dt, time_difference)
+                #print "time diff between {} and {} is {}".format(next.dt, current.dt, time_difference)
 
 
 
             if time_difference > 12.0:
                 time_difference = 12.0
-            print "\t",time_difference
+            #print "\t",time_difference
             ratio = temp_difference/ time_difference
 
             time_difference = int(round(time_difference))
