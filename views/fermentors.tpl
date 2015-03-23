@@ -129,15 +129,11 @@
         <TBODY>
             <TR>
                 <TD>
-                    <SELECT ng-model="fermentor.host_id">
-                            <OPTION ng-repeat="host in hosts" value="{{'{{host.id}}'}}" >{{'{{host.hostname}}'}}</OPTION>
-                    </SELECT>
+                    <SELECT ng-model="fermentor.host_id"><OPTION ng-repeat="host in hosts" value="{{'{{host.id}}'}}" >{{'{{host.hostname}}'}}</OPTION></SELECT>
                 </TD>
                 <TD><INPUT ng-model="fermentor.name" type="text" /></TD>
                 <TD>
-                    <SELECT ng-model="fermentor.fermwrap">
-                            <OPTION ng-repeat="fermwrap in fermwraps" value="{{'{{fermwrap.fermwrap}}'}}">{{'{{fermwrap.fermwrap}}'}}</OPTION>
-                    </SELECT>
+                    <SELECT ng-model="fermentor.fermwrap"><OPTION ng-repeat="fermwrap in fermwraps" value="{{'{{fermwrap.fermwrap}}'}}">{{'{{fermwrap.fermwrap}}'}}</OPTION></SELECT>
                 </TD>
                 <TD><INPUT ng-model="fermentor.start_date" type="text" /></TD>
                 <TD><INPUT ng-model="fermentor.end_begin_date" type="text"  /></TD>
