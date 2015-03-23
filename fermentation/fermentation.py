@@ -682,7 +682,7 @@ class Properties(object):
 
             f.schedule = Schedule(start_date=fermentor['start_date'], start_temp=fermentor['start_temp'], increases=increases)
 
-            for probe in fermentor['probe']:
+            for probe in fermentor['probes']:
                 f.add_probe(Probe(probe_type=probe['type'],file_name=probe['file_name']))
 
 
