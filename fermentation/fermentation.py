@@ -648,6 +648,10 @@ class Properties(object):
 
         cls.construct_fermentor_list(properties)
 
+        for fermentor in FermentorList:
+            print fermentor
+            print "\n"
+
     @classmethod
     def construct_fermentor_list(cls, properties):
         '''
@@ -734,9 +738,7 @@ def start():
             else:
                 Properties.current_poll_count = 0
                 Properties.poll_batches()
-                for fermentor in FermentorList:
-                    print fermentor
-                    print "\n"
+
 
 
             get_db()
