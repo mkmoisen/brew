@@ -441,7 +441,7 @@ class Fermentor(object):
 
     def turn_fermwrap_on(self):
         if self.is_fermwrap:
-            print "TURNING FERMWRAP ON FOR {} as temp is < {}".format(self.name, self.min_fermwrap_temp)
+            print "Turning fermwrap ON for {} as temp is < {}".format(self.name, self.min_temp)
             io.output(self.fermwrap_pin, True)
             self.is_fermwrap_on = True
 
@@ -450,9 +450,9 @@ class Fermentor(object):
     def turn_fermwrap_off(self, reason = None):
         if self.is_fermwrap:
             if reason == None:
-                print "TURNING FERMWRAP OFF FOR {} as temp is >= to {}".format(self.name, self.max_fermwrap_temp)
+                print "Turning fermwrap OFF for {} as temp is >= to {}".format(self.name, self.max_temp)
             else:
-                print "TURNING FERMWRAP OFF FOR {}".format(reason)
+                print "Turning fermwrap OFF for {}".format(reason)
             io.output(self.fermwrap_pin, False)
             self.is_fermwrap_on = False
 
