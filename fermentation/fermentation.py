@@ -716,7 +716,7 @@ class Properties(object):
 
 
 
-if __name__ == '__main__':
+def start():
     Properties.poll_batches(start=True)
 
     try:

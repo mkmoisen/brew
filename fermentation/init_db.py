@@ -7,7 +7,7 @@ from fermentation import FermentationHost, FermentationFermentor, FermentationFe
     FermentationTemperature, FermentationSchedule
 
 import os
-from settings import BREW_PROPERTIES_FILE
+from settings import BREW_PROPERTIES_FILE, hostnames
 
 
 tables = [FermentationSchedule,
@@ -47,7 +47,7 @@ def drop_and_create_tables():
     #    table.
     #    table.create_indexes()
 
-    hostnames = 'mmoisen-WS','raspberrpy','raspberrypy1'
+    
 
     print "creating hosts"
     hosts = [FermentationHost.create(hostname=hostname) for hostname in hostnames]
