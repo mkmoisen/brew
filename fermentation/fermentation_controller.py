@@ -274,7 +274,8 @@ def get_probes():
 @app.route('/fermentation/')
 @app.route('/fermentation')
 def fermentor():
-    return template('fermentors')
+    return static_file('fermentors.tpl', 'views/')
+    #return template('fermentors')
 
 
 
