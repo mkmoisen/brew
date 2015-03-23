@@ -675,9 +675,13 @@ class Properties(object):
                           temp_differential=fermentor['temp_differential'],
                           fermwrap_pin=fermentor['fermwrap_pin'],
                           id=fermentor['id'])
-            increases = [{'dt':datetime.strptime(i['dt'],'%Y-%m-%dT%H:%M:%S'),'temp':i['temp']} for i in fermentor['schedule'] ]
-            increases.sort(key=lambda i:i['dt'] )
+
+            increases = [ScheduleIncrease(dt=datetime.strptime(i['dt'],'%Y-%m-%dT%H:%M:%S'),temp=i['temp']) for i in fermentor['schedule'] ]
+
+            increases.sort(key=lambda i:i.dt )
+
             f.schedule = Schedule(start_date=fermentor['start_date'], start_temp=fermentor['start_temp'], increases=increases)
+
             for probe in fermentor['probe']:
                 f.add_probe(Probe(probe_type=probe['type'],file_name=probe['file_name']))
 
