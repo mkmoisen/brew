@@ -741,6 +741,8 @@ def start():
             else:
                 Properties.current_poll_count = 0
                 Properties.poll_batches()
+                #TODO: What happens if poll_batches fails for some reason? It should retain the original properties in memory and continue noob
+                # Actually it looks like the poll will return nothing and so this can continue fine
 
 
 
@@ -759,14 +761,21 @@ def start():
                     traceback.print_exc(file=sys.stdout)
                     print "Probe is probably disconnected! Cannot read wort temp. Turning off fermwrap.", ex.message
                     fermentor.turn_fermwrap_off()
+                    # go to next fermentor so you dont insert previous value
+                    continue
                 except RuntimeError as ex:
                     traceback.print_exc(file=sys.stdout)
                     print "RuntimeError > 25 second retyring or 185F. Cannot read wort temp. Turning off fermwrap.", ex.message
                     fermentor.turn_fermwrap_off()
+                    # go to next fermentor so you dont insert previous value
+                    continue
                 except Exception as ex:
                     traceback.print_exc(file=sys.stdout)
-                    fermentor.turn_fermwrap_off()
                     print "Unkown Error. Cannot read wort temp. Turning off fermwrap",ex.message
+                    fermentor.turn_fermwrap_off()
+                    # go to next fermentor so you dont insert previous value
+                    continue
+
 
                 if hasattr(fermentor, 'ambient_probe'): #Optional
                     try:
@@ -801,12 +810,16 @@ def start():
 
 
                 # Update Remote MySQL
-                FermentationTemperature.create(fermentor=fermentor.id,
+                # Don't stop program if insert fails
+                try:
+                    FermentationTemperature.create(fermentor=fermentor.id,
                                                dt=dt,
                                                ambient_temp=fermentor.ambient_temp,
                                                wort_temp=fermentor.wort_temp,
                                                swamp_cooler_temp=fermentor.swamp_temp)
-
+                except Exception as ex:
+                    print "Cannot insert into MySQL:", ex.message
+                    traceback.print_exc(file=sys.stdout)
 
                 # Check Fermwraps
                 #for fermentor in FermentorList:
