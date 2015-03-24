@@ -435,7 +435,9 @@ class Fermentor(object):
         self.fermwrap_pin = fermwrap_pin
         self.is_fermwrap = True
         io.setup(self.fermwrap_pin, io.OUT)
-        io.output(self.fermwrap_pin, False)
+        #io.output(self.fermwrap_pin, False)
+        #Every time I poll, I will turn the fermwrap off if the above line is uncommented.
+        # If the fermwrap needs to stay on, then this will lower the life of the switch.
 
     def turn_fermwrap_on(self):
         if self.is_fermwrap:
@@ -691,6 +693,7 @@ class Properties(object):
             ]}
         '''
         FermentorList.clear() # This needs to check to see if a fermentor is being removed on the update and turn off its fermwrap
+        # Wait if this turns off the fermwrap every time i poll then I will just be decrementing the life of the powerswitch tail noob!
 
         for fermentor in properties['fermentors']:
             f = Fermentor(name=fermentor['name'],
