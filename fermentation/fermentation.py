@@ -745,10 +745,14 @@ def start():
                 # Actually it looks like the poll will return nothing and so this can continue fine
 
 
-
-            get_db()
+            try:
+                get_db()
+            except Exception as ex:
+                print "failed to get db", ex.message
+                traceback.print_exc(file=sys.stdout)
 
             dt = datetime.now()
+            print dt
 
 
             # TODO: Unit test the various probe problems: cannot read, reading 80F, 124F, etc.
@@ -800,7 +804,7 @@ def start():
                     fermentor.swamp_temp = None
 
                 # Print to Screen
-                print fermentor.name
+                print fermentor.name, "range = {} - {}".format(fermentor.min_temp, fermentor.max_temp)
                 print '\twort={}'.format(fermentor.wort_temp)
                 if hasattr(fermentor, 'ambient_probe'):
                     print '\tambient={}'.format(fermentor.ambient_temp)
@@ -831,7 +835,12 @@ def start():
                     print "\tFermwrap=OFF as temp > {}".format(fermentor.max_temp)
                     fermentor.turn_fermwrap_off()
 
-            get_db().close()
+            try:
+                get_db().close()
+            except Exception as ex:
+                print "failed to get db", ex.message
+                traceback.print_exc(file=sys.stdout)
+
 
 
             # Sleep

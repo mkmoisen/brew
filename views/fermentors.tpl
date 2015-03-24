@@ -289,7 +289,7 @@
             console.log("name is null? " + ($scope.fermentor.name == null) + "; name is ''? " + ($scope.fermentor.name == ''));
 
             console.log("$scope.fermentor = " + angular.toJson($scope.fermentor));
-
+            
             $http.post('/fermentation/fermentor/change', angular.toJson($scope.fermentor))
             .success(function(data, status, headers, config) {
                 console.log("its a success!");
@@ -644,6 +644,7 @@
                     console.log("schedules differ");
                 } else {
                     console.log("schedules do not differ");
+                     //$scope.fermentor.schedule_updated = false;
                 }
             } else if ($scope.create && $scope.is_scheduled) {
                 // Back end will only create new schedules if schedule_updated == true
