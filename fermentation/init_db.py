@@ -4,7 +4,7 @@ import peewee
 from settings import db
 
 from fermentation import FermentationHost, FermentationFermentor, FermentationFermwrap, FermentationProbe, \
-    FermentationTemperature, FermentationSchedule
+    FermentationTemperature, FermentationSchedule, FermentationFermwrapHistory
 
 import os
 from settings import BREW_PROPERTIES_FILE, hostnames
@@ -14,6 +14,7 @@ tables = [FermentationSchedule,
           FermentationTemperature,
           FermentationProbe,
           FermentationFermwrap,
+          FermentationFermwrapHistory,
           FermentationFermentor,
           FermentationHost]
 

@@ -59,6 +59,26 @@ class FermentationFermwrap(BaseModel):
             (('host','pin'),True),
         )
 
+class FermentationFermwrapHistory(BaseModel):
+    fermentor = peewee.ForeignKeyField(FermentationFermentor, related_name="fermentor_fermwrap_histories")
+    dt = peewee.DateTimeField()
+    ambient_file_name = peewee.CharField(null=True, max_length=50)
+    ambient_temp = peewee.DoubleField(null=True)
+    wort_file_name = peewee.CharField(max_length=50)
+    #wort_temp = peewee.DoubleField() This can be computed
+    target_temp_at_start = peewee.DoubleField() #TODO HOW IS THIS INDEXED?
+    target_temp_at_end = peewee.DoubleField()   #TODO HOW IS THIS INDEXED?
+    temp_differential = peewee.DoubleField()
+    minutes_heater_on = peewee.DoubleField(null=True)
+    minutes_heater_off = peewee.DoubleField(null=True)
+
+    class Meta:
+        db_table = 'fermentation_fermwrap_history'
+        indexes = (
+            (('ambient_file_name','ambient_temp','temp_differential','minutes_heater_on'), False),
+            (('ambient_file_name','ambient_temp','temp_differential','minutes_heater_off'), False)
+        )
+
 class FermentationProbe(BaseModel):
     file_name = peewee.CharField(max_length=50)
     type = peewee.CharField(max_length=50, choices= tuple([(k.lower(),k) for k in ['Wort','Ambient', 'Swamp']]))
@@ -80,6 +100,7 @@ class FermentationTemperature(BaseModel):
     ambient_temp = peewee.DoubleField(null=True)
     wort_temp = peewee.DoubleField()
     swamp_cooler_temp = peewee.DoubleField(null=True)
+    #TODO: add is fermwrap on here
 
     class Meta:
         db_table = 'fermentation_temperature'
@@ -438,23 +459,88 @@ class Fermentor(object):
         #io.output(self.fermwrap_pin, False)
         #Every time I poll, I will turn the fermwrap off if the above line is uncommented.
         # If the fermwrap needs to stay on, then this will lower the life of the switch.
+        self.dt_fermwrap_turned_on = None
+        self.dt_fermwrap_turned_off = None
 
-    def turn_fermwrap_on(self):
+    def turn_fermwrap_on(self, dt=None):
         if self.is_fermwrap:
-            #print "Turning fermwrap ON for {} as temp is < {}".format(self.name, self.min_temp)
+            try:
+                # Was fermwrap off right before this?
+                if not self.is_fermwrap_on:
+                    self.dt_fermwrap_turned_on = datetime.now()
+                    if self.dt_fermwrap_turned_off is not None:
+                        # Insert into fermwrap_history (ambient, range, length_heater_off) values (ambient, range, self.dt_fermwrap_turned_off - self.dt_fermwrap_turned_on)
+                        try:
+                            his = FermentationFermwrapHistory.create(
+                                fermentor=self.id,
+                                dt=dt,
+                                ambient_file_name=self.ambient_probe.file_name,
+                                ambient_temp=self.ambient_temp,
+                                wort_file_name=self.wort_probe.file_name,
+                                #wort_temp=self.wort_temp,
+                                target_temp_at_start=self.target_temp_at_start,
+                                target_temp_at_end=self.target_temp(),
+                                temp_differential=self.temp_differential,
+                                minutes_heater_on=None,
+                                minutes_heater_off=(self.dt_fermwrap_turned_off - self.dt_fermwrap_turned_on).total_seconds()/60.0
+                            )
+                        except Exception as ex:
+                            print "failed to write fermwrap history to db:", ex.message
+                            traceback.print_exc(file=sys.stdout)
+
+                        self.dt_fermwrap_turned_off = None
+                    else:
+                        self.target_temp_at_start = self.target_temp()
+
+            except Exception as ex:
+                print "failed to do fermwrap history:", ex.message
+                traceback.print_exc(file=sys.stdout)
+
             io.output(self.fermwrap_pin, True)
             self.is_fermwrap_on = True
 
             # TODO: Update Fermwrap db table here
 
-    def turn_fermwrap_off(self, reason = None):
+    def turn_fermwrap_off(self, dt=None, reason = None):
         if self.is_fermwrap:
-            if reason == None:
-                #print "Turning fermwrap OFF for {} as temp is >= to {}".format(self.name, self.max_temp)
-                pass
-            else:
-                print "Turning fermwrap OFF for {}".format(reason)
-                pass
+            try:
+                if reason == None:
+                    #print "Turning fermwrap OFF for {} as temp is >= to {}".format(self.name, self.max_temp)
+                    pass
+                else:
+                    print "Turning fermwrap OFF for {}".format(reason)
+                    pass
+
+
+                # Was fermwrap on right before executing turn fermwrap off?
+                if self.is_fermwrap_on:
+                    self.dt_fermwrap_turned_off = datetime.now()
+                    if self.dt_fermwrap_turned_on is not None:
+                        try:
+                            # insert into fermwrap_history (ambient, range, length_heater_on) values (ambient, range, self.dt_fermwrap_turned_on - self.dt_fermwrap_turned_off)
+                            his = FermentationFermwrapHistory.create(
+                                fermentor=self.id,
+                                dt=dt,
+                                ambient_file_name=self.ambient_probe.file_name,
+                                ambient_temp=self.ambient_temp,
+                                wort_file_name=self.wort_probe.file_name,
+                                #wort_temp=self.wort_temp,
+                                target_temp_at_start=self.target_temp_at_start,
+                                target_temp_at_end=self.target_temp(),
+                                temp_differential=self.temp_differential,
+                                minutes_heater_on=(self.dt_fermwrap_turned_on - self.dt_fermwrap_turned_off).total_seconds()/60.0,
+                                minutes_heater_off=None
+                            )
+                        except Exception as ex:
+                            print "failed to write fermwrap history to db:", ex.message
+                            traceback.print_exc(file=sys.stdout)
+                        self.dt_fermwrap_turned_on = None
+                    else:
+                        self.target_temp_at_start = self.target_temp()
+            except Exception as ex:
+                print "failed to do fermwrap history:", ex.message
+                traceback.print_exc(file=sys.stdout)
+
             io.output(self.fermwrap_pin, False)
             self.is_fermwrap_on = False
 
@@ -469,6 +555,10 @@ class Fermentor(object):
     def max_temp(self):
         current_temp = self.schedule.get_current_temp(start_temp=self.start_temp)
         return current_temp + self.temp_differential
+
+    @property
+    def target_temp(self):
+        return self.schedule.get_current_temp(start_temp=self.start_temp)
 
     def __str__(self):
         line = 'Name: {}\n'.format(self.name)
@@ -832,11 +922,11 @@ def start():
                 #for fermentor in FermentorList:
                 if fermentor.wort_temp < fermentor.min_temp:
                     print "\tFermwrap=ON as temp < {}".format(fermentor.min_temp)
-                    fermentor.turn_fermwrap_on()
+                    fermentor.turn_fermwrap_on(dt=dt)
 
                 if fermentor.wort_temp > fermentor.max_temp:
                     print "\tFermwrap=OFF as temp > {}".format(fermentor.max_temp)
-                    fermentor.turn_fermwrap_off()
+                    fermentor.turn_fermwrap_off(dt=dt)
 
             try:
                 get_db().close()
