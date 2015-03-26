@@ -481,7 +481,7 @@ class Fermentor(object):
                 wort_file_name=self.wort_probe.file_name,
                 #wort_temp=self.wort_temp,
                 target_temp_at_start=self.target_temp_at_start,
-                target_temp_at_end=self.target_temp(),
+                target_temp_at_end=self.target_temp,
                 temp_differential=self.temp_differential,
             )
             if heater_on:
@@ -547,7 +547,7 @@ class Fermentor(object):
 
                         self.dt_fermwrap_turned_on = None
                     else:
-                        self.target_temp_at_start = self.target_temp()
+                        self.target_temp_at_start = self.target_temp
                 else:
                     fermwrap_turned_off_now = False
             except Exception as ex:
