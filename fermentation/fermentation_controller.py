@@ -281,6 +281,16 @@ def fermentor():
     return template('fermentors')
 
 
+
+
+@app.route('/fermentation/temperature/raw/get')
+@app.route('/fermentation/temperature/raw/get/')
+def get_raw_temperature():
+    #query = (FermentationTemperature.select(FermentationTemperature, FermentationFermentor)
+    #       .join(FermentationTemperature)
+    pass
+
+
 @app.route('/fermentation/history')
 @app.route('/fermentation/history/')
 def fermentor_history():

@@ -512,7 +512,7 @@ class Fermentor(object):
 
                         self.dt_fermwrap_turned_off = None
                     else:
-                        self.target_temp_at_start = self.target_temp()
+                        self.target_temp_at_start = self.target_temp
                 else:
                     fermwrap_turned_on_now = False
             except Exception as ex:
