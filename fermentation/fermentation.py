@@ -472,6 +472,7 @@ class Fermentor(object):
 
 
     def _insert_fermwrap_history(self, dt=None, heater_on=True):
+        print "calling _insert_fermwrap_history"
         try:
             his = FermentationFermwrapHistory(
                 fermentor=self.id,
@@ -507,7 +508,7 @@ class Fermentor(object):
                     fermwrap_turned_on_now = True
                     self.dt_fermwrap_turned_on = datetime.now()
                     if self.dt_fermwrap_turned_off is not None:
-
+                        print "self.dt_fermwrap_turned_off is not None"
                         self._insert_fermwrap_history(dt=dt, heater_on=True)
 
                         self.dt_fermwrap_turned_off = None
@@ -542,7 +543,7 @@ class Fermentor(object):
                     fermwrap_turned_off_now = True
                     self.dt_fermwrap_turned_off = datetime.now()
                     if self.dt_fermwrap_turned_on is not None:
-
+                        print "self.dt_fermwrap_turned_on is not None"
                         self._insert_fermwrap_history(dt=dt, heater_on=False)
 
                         self.dt_fermwrap_turned_on = None

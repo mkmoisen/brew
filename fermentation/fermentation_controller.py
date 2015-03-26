@@ -8,7 +8,7 @@ import ast
 from controller import app
 
 from fermentation import FermentationHost, FermentationFermentor, FermentationFermwrap, FermentationProbe, \
-    FermentationTemperature, FermentationSchedule, Properties
+    FermentationTemperature, FermentationSchedule, FermentationFermwrapHistory, Properties
 
 import peewee
 from settings import get_db
@@ -286,9 +286,63 @@ def fermentor():
 @app.route('/fermentation/temperature/raw/get')
 @app.route('/fermentation/temperature/raw/get/')
 def get_raw_temperature():
-    #query = (FermentationTemperature.select(FermentationTemperature, FermentationFermentor)
-    #       .join(FermentationTemperature)
-    pass
+    get_db()
+
+    query = (FermentationTemperature.select(FermentationTemperature, FermentationFermentor)
+           .join(FermentationFermentor, on=FermentationTemperature.fermentor)
+                .where(FermentationFermentor.active == 1)
+           .order_by(FermentationTemperature.dt.desc())
+           .limit(100)
+    )
+    temps = []
+    for temp in query:
+        temps.append({
+            'hostname':temp.fermentor.host.hostname,
+            'fermentor':temp.fermentor.name,
+            'dt':temp.dt.strftime('%Y-%m-%dT%H:%M:%S'),
+            'ambient_temp':temp.ambient_temp,
+            'wort_temp':temp.wort_temp,
+            'target_temp':temp.target_temp,
+            'is_fermwrap_on':temp.is_fermwrap_on,
+            'fermwrap_turned_on_now':temp.fermwrap_turned_on_now,
+            'fermwrap_turned_off_now':temp.fermwrap_turned_off_now,
+
+        })
+
+    get_db().close()
+
+    return json.dumps(temps)
+
+@app.route('/fermentation/fermwrap-history/get')
+@app.route('/fermentation/fermwrap-history/get/')
+def get_fermwrap_history():
+    get_db()
+
+    query = (
+        FermentationFermwrapHistory.select()
+        .join(FermentationFermentor, on=FermentationFermwrapHistory.fermentor)
+            .where(FermentationFermentor.active==1)
+        .order_by(FermentationFermwrapHistory.dt.desc())
+        .limit(100)
+    )
+
+    fermwraps = []
+
+    for fermwrap in query:
+        fermwraps.append({
+            'fermentor':fermwrap.fermentor.name,
+            'dt':fermwrap.dt.strftime('%Y-%m-%dT%H:%M:%S'),
+            'ambient_temp':fermwrap.ambient_temp,
+            'target_temp_at_start':fermwrap.target_temp_at_start,
+            'target_temp_at_end':fermwrap.target_temp_at_end,
+            'temp_differential':fermwrap.temp_differential,
+            'minutes_heater_on':fermwrap.minutes_heater_on,
+            'minutes_heater_off':fermwrap.minutes_heater_off,
+        })
+
+    get_db().close()
+
+    return json.dumps(fermwraps)
 
 
 @app.route('/fermentation/history')
