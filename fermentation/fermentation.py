@@ -960,16 +960,15 @@ def start():
                         print "\tFermwrap=ON as temp < {}".format(fermentor.min_temp)
                         fermwrap_turned_on_now = fermentor.turn_fermwrap_on(dt=dt)
                         if ferm_temp is not None:
-                            ferm_temp.is_fermwrap_on=1
                             ferm_temp.fermwrap_turned_on_now =fermwrap_turned_on_now
 
                     elif fermentor.wort_temp > fermentor.max_temp:
                         print "\tFermwrap=OFF as temp > {}".format(fermentor.max_temp)
                         fermwrap_turned_off_now = fermentor.turn_fermwrap_off(dt=dt)
                         if ferm_temp is not None:
-                            ferm_temp.is_fermwrap_off=1
                             ferm_temp.fermwrap_turned_off_now = fermwrap_turned_off_now
 
+                    ferm_temp.is_fermwrap_on = fermentor.is_fermwrap_on
                 try:
                     ferm_temp.save()
                 except Exception as ex:

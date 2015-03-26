@@ -281,6 +281,11 @@ def fermentor():
     return template('fermentors')
 
 
+@app.route('/fermentation/history')
+@app.route('/fermentation/history/')
+def fermentor_history():
+    return template('fermentor_history')
+
 
 @app.post('/fermentation/fermentor/inactivate')
 @app.post('/fermentation/fermentor/inactivate/')
