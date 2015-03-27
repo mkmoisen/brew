@@ -10,6 +10,19 @@ from settings import BaseModel, get_db, BREW_PROPERTIES_FILE
 import traceback
 import sys
 
+
+import logging
+import logging.handlers
+
+LOG_FILENAME = 'brew.log'
+logger = logging.getLogger('Logger')
+logger.setLevel(logging.DEBUG)
+handler = logging.handlers.RotatingFileHandler(LOG_FILENAME,
+                                               maxBytes=10000000, #10000000
+                                               backupCount=10) #
+logger.addHandler(handler)
+
+
 try:
     import RPi.GPIO as io
     io.setmode(io.BCM)
@@ -473,6 +486,7 @@ class Fermentor(object):
 
     def _insert_fermwrap_history(self, dt=None, heater_on=True):
         print "calling _insert_fermwrap_history"
+        logger.debug("calling _insert_fermwrap_history")
         try:
             his = FermentationFermwrapHistory(
                 fermentor=self.id,
@@ -497,16 +511,21 @@ class Fermentor(object):
             his.save()
         except Exception as ex:
             print "failed to write fermwrap history to db:", ex.message
+            logger.debug("failed to write fermwrap history to db: {}".format(ex.message))
             traceback.print_exc(file=sys.stdout)
 
     def turn_fermwrap_on(self, dt=None):
         fermwrap_turned_on_now = None
         if self.is_fermwrap:
+            fermwrap_turned_on_now = False
             try:
                 # Was fermwrap off right before this?
+                print "not self.is_fermwrap_on ? {}".format(not self.is_fermwrap_on)
                 if not self.is_fermwrap_on:
                     fermwrap_turned_on_now = True
                     self.dt_fermwrap_turned_on = datetime.now()
+                    print "self.dt_fermwrap_turned_off == {}".format(self.dt_fermwrap_turned_off)
+                    print "self.dt_fermwrap_turned_off is not None? {}".format(self.dt_fermwrap_turned_off is not None)
                     if self.dt_fermwrap_turned_off is not None:
                         print "self.dt_fermwrap_turned_off is not None"
                         self._insert_fermwrap_history(dt=dt, heater_on=True)
@@ -514,8 +533,6 @@ class Fermentor(object):
                         self.dt_fermwrap_turned_off = None
                     else:
                         self.target_temp_at_start = self.target_temp
-                else:
-                    fermwrap_turned_on_now = False
             except Exception as ex:
                 print "failed to do fermwrap history:", ex.message
                 traceback.print_exc(file=sys.stdout)
@@ -529,6 +546,7 @@ class Fermentor(object):
     def turn_fermwrap_off(self, dt=None, reason = None):
         fermwrap_turned_off_now = None
         if self.is_fermwrap:
+            fermwrap_turned_off_now = False
             try:
                 if reason == None:
                     #print "Turning fermwrap OFF for {} as temp is >= to {}".format(self.name, self.max_temp)
@@ -539,9 +557,12 @@ class Fermentor(object):
 
 
                 # Was fermwrap on right before executing turn fermwrap off?
+                print "self.is_fermwrap_on? {}".format(self.is_fermwrap_on)
                 if self.is_fermwrap_on:
                     fermwrap_turned_off_now = True
                     self.dt_fermwrap_turned_off = datetime.now()
+                    print "self.dt_fermwrap_turned_on == {}".format(self.dt_fermwrap_turned_on)
+                    print "self.dt_fermwrap_turned_on is not None ? {}".format(self.dt_fermwrap_turned_on is not None)
                     if self.dt_fermwrap_turned_on is not None:
                         print "self.dt_fermwrap_turned_on is not None"
                         self._insert_fermwrap_history(dt=dt, heater_on=False)
@@ -549,8 +570,7 @@ class Fermentor(object):
                         self.dt_fermwrap_turned_on = None
                     else:
                         self.target_temp_at_start = self.target_temp
-                else:
-                    fermwrap_turned_off_now = False
+
             except Exception as ex:
                 print "failed to do fermwrap history:", ex.message
                 traceback.print_exc(file=sys.stdout)
