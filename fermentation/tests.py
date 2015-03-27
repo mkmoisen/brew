@@ -1264,3 +1264,74 @@ suite = unittest.TestLoader().loadTestsFromTestCase(TestAngularFermentor)
 unittest.TextTestRunner(verbosity=2).run(suite)
 
 '''
+
+from fermentation import FermentationFermwrapHistory, Fermentor
+
+
+class TestFermwrapHistory(unittest.TestCase):
+    def setUp(self):
+        FermentationFermwrapHistory._meta.db_table += '_t'
+
+
+    def test_lol(self):
+        fermentor = Fermentor(
+            name='Test FHistory',
+            start_temp=50,
+            temp_differential=0.125,
+            fermwrap_pin=17
+        )
+        self.assertEquals(fermentor.is_fermwrap, True)
+        self.assertEquals(fermentor.is_fermwrap_on, False)
+        self.assertEquals(hasattr(fermentor, 'dt_fermwrap_turned_on'), False)
+        self.assertEquals(hasattr(fermentor, 'dt_fermwrap_turned_off'), False)
+
+        # Turn fermwrap on the first time
+        dt = datetime(2015,01,01,00,00,00)
+        # Verify fermwrap_turned_on_now = True
+        self.assertEquals(fermentor.turn_fermwrap_on(dt), True)
+        dt_fermwrap_turned_on = fermentor.dt_fermwrap_turned_on
+        self.assertNotEquals(fermentor.dt_fermwrap_turned_on, None)
+        self.assertEquals(fermentor.dt_fermwrap_turned_off, None)
+        self.assertEquals(fermentor.target_temp_at_start, fermentor.target_temp)
+        self.assertEquals(fermentor.is_fermwrap_on, True)
+
+        # Call fermwrap on a second time
+        dt = datetime(2015, 01, 01, 00, 10, 00)
+        # verify fermwrap_turned_on_now = False
+        self.assertEquals(fermentor.turn_fermwrap_on(dt), False)
+        self.assertNotEquals(fermentor.dt_fermwrap_turned_on, None)
+        self.assertEquals(fermentor.dt_fermwrap_turned_off, None)
+        self.assertEquals(dt_fermwrap_turned_on, fermentor.dt_fermwrap_turned_on)
+        self.assertEquals(fermentor.target_temp_at_start, fermentor.target_temp)
+        self.assertEquals(fermentor.is_fermwrap_on, True)
+
+        # XCall fermwrap off first time
+        dt = datetime(2015, 01, 01, 00, 20, 00)
+        # verify fermwrap_turned_off_now = True
+        self.assertEquals(fermentor.turn_fermwrap_off(dt), True)
+        self.assertNotEquals(fermentor.dt_fermwrap_turned_off, None)
+        self.assertEquals(fermentor.dt_fermwrap_turned_on, None)
+        self.assertEquals(fermentor.target_temp_at_start, fermentor.target_temp)
+        self.assertEquals(fermentor.is_fermwrap_on, False)
+
+        # Call fermwrap off second time
+        dt = datetime(2015, 01, 01, 00, 30, 00)
+        self.assertEquals(fermentor.turn_fermwrap_off(dt), False)
+        self.assertNotEquals(fermentor.dt_fermwrap_turned_off, None)
+        self.assertEquals(fermentor.dt_fermwrap_turned_on, None)
+        self.assertEquals(fermentor.is_fermwrap_on, False)
+
+        # Call fermwrap on third time
+        dt = datetime(2015, 01, 01, 00, 30, 00)
+        self.assertEquals(fermentor.turn_fermwrap_on(dt), True)
+        self.assertNotEquals(fermentor.dt_fermwrap_turned_on, None)
+        self.assertEquals(fermentor.dt_fermwrap_turned_off, None)
+
+
+
+'''
+import unittest
+from fermentation.tests import TestFermwrapHistory
+suite = unittest.TestLoader().loadTestsFromTestCase(TestFermwrapHistory)
+unittest.TextTestRunner(verbosity=2).run(suite)
+'''

@@ -28,6 +28,15 @@ try:
     io.setmode(io.BCM)
 except ImportError:
     print "run this on the RPi"
+    class io(object):
+        OUT=1
+        @staticmethod
+        def setup(pin, method):
+            pass
+        @staticmethod
+        def output(pin, bol):
+            pass
+
 
 from datetime import datetime, timedelta
 
@@ -111,7 +120,7 @@ class FermentationTemperature(BaseModel):
     fermentor = peewee.ForeignKeyField(FermentationFermentor, related_name="fermentor_temperatures")
     dt = peewee.DateTimeField()
     ambient_temp = peewee.DoubleField(null=True)
-    wort_temp = peewee.DoubleField()
+    wort_temp = peewee.DoubleField(null=True)
     swamp_cooler_temp = peewee.DoubleField(null=True)
     wort_file_name = peewee.CharField(null=True, max_length=50)
     ambient_file_name = peewee.CharField(null=True, max_length=50)
@@ -480,8 +489,9 @@ class Fermentor(object):
         #io.output(self.fermwrap_pin, False)
         #Every time I poll, I will turn the fermwrap off if the above line is uncommented.
         # If the fermwrap needs to stay on, then this will lower the life of the switch.
-        self.dt_fermwrap_turned_on = None
-        self.dt_fermwrap_turned_off = None
+        #self.dt_fermwrap_turned_on = None
+        #self.dt_fermwrap_turned_off = None
+        '''noob same problem lol with the previous 2 lines'''
 
 
     def _insert_fermwrap_history(self, dt=None, heater_on=True):
@@ -524,14 +534,20 @@ class Fermentor(object):
                 if not self.is_fermwrap_on:
                     fermwrap_turned_on_now = True
                     self.dt_fermwrap_turned_on = datetime.now()
+                    # if we poll for a new fermentor, this attr won't be set
+                    if not hasattr(self, 'dt_fermwrap_turned_off'):
+                        self.dt_fermwrap_turned_off = None
+
                     print "self.dt_fermwrap_turned_off == {}".format(self.dt_fermwrap_turned_off)
                     print "self.dt_fermwrap_turned_off is not None? {}".format(self.dt_fermwrap_turned_off is not None)
+
                     if self.dt_fermwrap_turned_off is not None:
                         print "self.dt_fermwrap_turned_off is not None"
                         self._insert_fermwrap_history(dt=dt, heater_on=True)
 
                         self.dt_fermwrap_turned_off = None
                     else:
+                        #TODO this looks superflous but it doesnt hurt. Move this
                         self.target_temp_at_start = self.target_temp
             except Exception as ex:
                 print "failed to do fermwrap history:", ex.message
@@ -561,14 +577,19 @@ class Fermentor(object):
                 if self.is_fermwrap_on:
                     fermwrap_turned_off_now = True
                     self.dt_fermwrap_turned_off = datetime.now()
+                    # if we poll for a new fermentor, this attr won't be set
+                    if not hasattr(self, 'dt_fermwrap_turned_on'):
+                        self.dt_fermwrap_turned_on = None
                     print "self.dt_fermwrap_turned_on == {}".format(self.dt_fermwrap_turned_on)
                     print "self.dt_fermwrap_turned_on is not None ? {}".format(self.dt_fermwrap_turned_on is not None)
+
                     if self.dt_fermwrap_turned_on is not None:
                         print "self.dt_fermwrap_turned_on is not None"
                         self._insert_fermwrap_history(dt=dt, heater_on=False)
 
                         self.dt_fermwrap_turned_on = None
                     else:
+                        #TODO this looks superflous but it doesnt hurt. Move this
                         self.target_temp_at_start = self.target_temp
 
             except Exception as ex:
@@ -581,19 +602,32 @@ class Fermentor(object):
         return fermwrap_turned_off_now
             # TODO: Update Fermwrap db table here
 
+
+
+    #TODO:
+    '''
+    These properties shouldn't have to check if schedule is None.
+    A fermentor with no schedule should create a schedule with one entry
+    '''
     @property
     def min_temp(self):
-        current_temp = self.schedule.get_current_temp(start_temp=self.start_temp)
-        return current_temp - self.temp_differential
+        if self.schedule is not None:
+            current_temp = self.schedule.get_current_temp(start_temp=self.start_temp)
+            return current_temp - self.temp_differential
+        return self.start_temp - self.temp_differential
 
     @property
     def max_temp(self):
-        current_temp = self.schedule.get_current_temp(start_temp=self.start_temp)
-        return current_temp + self.temp_differential
+        if self.schedule is not None:
+            current_temp = self.schedule.get_current_temp(start_temp=self.start_temp)
+            return current_temp + self.temp_differential
+        return self.start_temp + self.temp_differential
 
     @property
     def target_temp(self):
-        return self.schedule.get_current_temp(start_temp=self.start_temp)
+        if self.schedule is not None:
+            return self.schedule.get_current_temp(start_temp=self.start_temp)
+        return self.start_temp
 
     def __str__(self):
         line = 'Name: {}\n'.format(self.name)
@@ -618,6 +652,13 @@ class Fermentor(object):
 class Properties(object):
     current_poll_count = 0
     POLL_COUNT_MAX = 30
+
+    @classmethod
+    def set_db_to_not_updated(cls, hostname):
+        #TODO: Change this to host_id and change properties file too
+        host = FermentationHost.get(FermentationHost.hostname==hostname)
+        host.updated = 0
+        host.save()
 
     @classmethod
     def read_properties_from_db(cls):
@@ -781,6 +822,27 @@ class Properties(object):
         for fermentor in FermentorList:
             print fermentor
             print "\n"
+
+        if not properties['updated']:
+            # This prevents rewriting needlessly if start==true
+            return
+
+        # turn updated to false in brew.properties lol
+        properties['updated'] = False
+        try:
+            cls.write_properties_file(properties)
+            #with open(BREW_PROPERTIES_FILE,'w') as f:
+                #f.write(json.dumps(properties))
+        except Exception as ex:
+            #TODO:
+            '''
+            OK If this is a read only file system, I won't be able to write updated=false to brew.properties
+            And everytime I poll, I will be picking up an "updated" file.
+
+            If the file system is read only, the SSOT should move to the remote DB instead for all future polls.
+            '''
+            traceback.print_exc(file=sys.stdout)
+            print "Cannot write {}!".format(BREW_PROPERTIES_FILE), ex.message
 
     @classmethod
     def construct_fermentor_list(cls, properties):
