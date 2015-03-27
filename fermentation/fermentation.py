@@ -521,7 +521,7 @@ class Fermentor(object):
             his.save()
         except Exception as ex:
             print "failed to write fermwrap history to db:", ex.message
-            logger.debug("failed to write fermwrap history to db: {}".format(ex.message))
+            logger.debug("failed to write fermwrap history to db: {}".format(ex.message), exc_info=True)
             traceback.print_exc(file=sys.stdout)
 
     def turn_fermwrap_on(self, dt=None):
