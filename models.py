@@ -30,6 +30,10 @@ class Probe(object):
 
     @property
     def temp(self):
+        if self.file_name is None:
+            # Account for testing or lack of ambient/swamp probe
+            return None
+
         lines = self.read_temp_raw()
         while lines[0].strip()[-3:] != 'YES':
             if self.retry_count < Probe.RETRY_MAX:

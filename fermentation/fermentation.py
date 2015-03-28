@@ -91,8 +91,9 @@ class FermentationFermwrapHistory(BaseModel):
     target_temp_at_start = peewee.DoubleField() #TODO HOW IS THIS INDEXED?
     target_temp_at_end = peewee.DoubleField()   #TODO HOW IS THIS INDEXED?
     temp_differential = peewee.DoubleField()
-    minutes_heater_on = peewee.DoubleField(null=True)
     minutes_heater_off = peewee.DoubleField(null=True)
+    minutes_heater_on = peewee.DoubleField(null=True)
+
 
     class Meta:
         db_table = 'fermentation_fermwrap_history'
@@ -480,6 +481,38 @@ class Fermentor(object):
         elif probe.probe_type == 'swamp':
             self.swamp_probe = probe
 
+    @property
+    def probes(self):
+        return self.probes
+
+    @probes.setter
+    def probes(self, probes):
+        is_wort = False
+        is_ambient = False
+        is_swamp = False
+        self.probes = []
+        for probe in probes:
+            self.probes.append(probe)
+            if probe.probe_type == 'wort':
+                self.wort_probe = probe
+                is_wort = True
+            elif probe.probe_type == 'ambient':
+                self.ambient_probe = probe
+                is_ambient = True
+            elif probe.probe_type == 'swamp':
+                self.swamp_probe = probe
+                is_swamp = True
+
+        if not is_wort:
+            raise RuntimeError("Must have at least one wort probe")
+
+        if not is_ambient:
+            self.ambient_probe = Probe(file_name=None, probe_type='ambient')
+
+        if not is_swamp:
+            self.swamp_probe = Probe(file_name=None, probe_type='swamp')
+
+
     # I removed read_temps here to the individual probes
 
     def set_fermwrap(self, fermwrap_pin):
@@ -497,27 +530,60 @@ class Fermentor(object):
     def _insert_fermwrap_history(self, dt=None, heater_on=True):
         print "calling _insert_fermwrap_history"
         logger.debug("calling _insert_fermwrap_history")
+
+        #his = FermentationFermwrapHistory.create(...)
         try:
-            his = FermentationFermwrapHistory(
+            if heater_on:
+                his = FermentationFermwrapHistory(
+                    fermentor=self.id,
+                    dt=dt,
+                    #ambient_file_name=None,
+                    #ambient_temp=None,  # TODO: what if end user isn't ambient???
+                    wort_file_name=self.wort_probe.file_name,
+                    wort_temp=self.wort_temp,
+                    target_temp_at_start=self.target_temp_at_start,
+                    target_temp_at_end=self.target_temp,
+                    temp_differential=self.temp_differential,
+                    minutes_heater_on=None,
+                    minutes_heater_off=(self.dt_fermwrap_turned_on - self.dt_fermwrap_turned_off).total_seconds()/60.0,
+                )
+
+            if not heater_on:
+                his = FermentationFermwrapHistory(
                 fermentor=self.id,
                 dt=dt,
-                ambient_file_name=None,
-                ambient_temp=None,  # TODO: what if end user isn't ambient???
+                #ambient_file_name=None,
+                #ambient_temp=None,  # TODO: what if end user isn't ambient???
                 wort_file_name=self.wort_probe.file_name,
-                #wort_temp=self.wort_temp,
+                wort_temp=self.wort_temp,
                 target_temp_at_start=self.target_temp_at_start,
                 target_temp_at_end=self.target_temp,
                 temp_differential=self.temp_differential,
+                minutes_heater_on=(self.dt_fermwrap_turned_off - self.dt_fermwrap_turned_on).total_seconds()/60.0,
+                minutes_heater_off=None,
             )
+            '''
             if heater_on:
+                pass
+                #his.minutes_heater_on=None,
+                val = (self.dt_fermwrap_turned_on - self.dt_fermwrap_turned_off).total_seconds()/60.0
+
+                print "val = {}".format(val)
+                #his.minutes_heater_off=(val)
+                #his.minutes_heater_off=1
                 his.minutes_heater_on=None,
-                his.minutes_heater_off=(self.dt_fermwrap_turned_off - self.dt_fermwrap_turned_on).total_seconds()/60.0
             else:
-                his.minutes_heater_on=(self.dt_fermwrap_turned_on - self.dt_fermwrap_turned_off).total_seconds()/60.0,
+                pass
+                val = (self.dt_fermwrap_turned_off - self.dt_fermwrap_turned_on).total_seconds()/60.0
+                print "val = {}".format(val)
+                #his.minutes_heater_on=(val),
+                #is.minutes_heater_on=None,
                 his.minutes_heater_off=None
+            '''
             if hasattr(self, 'ambient_probe'):
-                his.ambient_file_name=self.ambient_probe.file_name
-                his.ambient_temp=self.ambient_temp
+                pass
+                #his.ambient_file_name=self.ambient_probe.file_name
+                #his.ambient_temp=self.ambient_temp
             his.save()
         except Exception as ex:
             print "failed to write fermwrap history to db:", ex.message
@@ -895,8 +961,10 @@ class Properties(object):
 
             f.schedule = Schedule(start_date=fermentor['start_date'], start_temp=fermentor['start_temp'], increases=increases)
 
-            for probe in fermentor['probes']:
-                f.add_probe(Probe(probe_type=probe['type'],file_name=probe['file_name']))
+            probes = [Probe(probe_type=probe['type'],file_name=probe['file_name']) for probe in fermentor['probes']]
+            f.probes = probes
+            #for probe in fermentor['probes']:
+            #    f.add_probe(Probe(probe_type=probe['type'],file_name=probe['file_name']))
 
 
 
@@ -956,21 +1024,41 @@ def start():
                     print "Probe is probably disconnected! Cannot read wort temp. Turning off fermwrap.", ex.message
                     fermentor.turn_fermwrap_off()
                     # go to next fermentor so you dont insert previous value
-                    # What about setting fermentor.wrot_temp to null and saving it to the db to indicate an error?
+                    # TODO: What about setting fermentor.wrot_temp to null and saving it to the db to indicate an error?
                     continue
                 except RuntimeError as ex:
                     traceback.print_exc(file=sys.stdout)
                     print "RuntimeError > 25 second retyring or 185F. Cannot read wort temp. Turning off fermwrap.", ex.message
                     fermentor.turn_fermwrap_off()
                     # go to next fermentor so you dont insert previous value
+                    # TODO: What about setting fermentor.wrot_temp to null and saving it to the db to indicate an error?
                     continue
                 except Exception as ex:
                     traceback.print_exc(file=sys.stdout)
                     print "Unkown Error. Cannot read wort temp. Turning off fermwrap",ex.message
                     fermentor.turn_fermwrap_off()
                     # go to next fermentor so you dont insert previous value
+                    # TODO: What about setting fermentor.wrot_temp to null and saving it to the db to indicate an error?
                     continue
 
+
+                try:
+                    fermentor.ambient_temp = fermentor.ambient_probe.temp
+                except Exception as ex:
+                    #Not a big deal
+                    print "Cannot read ambient.", ex.message
+                    traceback.print_exc(file=sys.stdout)
+                    fermentor.ambient_temp = None
+
+                try:
+                    fermentor.swamp_temp = fermentor.swamp_probe.temp
+                except Exception as ex:
+                    #Not a big deal
+                    print "Cannot read swamp.", ex.message
+                    traceback.print_exc(file=sys.stdout)
+                    fermentor.swamp_temp = None
+
+                '''
                 ambient_file_name = None
                 swamp_file_name = None
 
@@ -997,16 +1085,8 @@ def start():
                         fermentor.swamp_temp = None
                 else:
                     fermentor.swamp_temp = None
+                '''
 
-                # Print to Screen
-
-
-                print fermentor.name, "range = {} - {}".format(fermentor.min_temp, fermentor.max_temp)
-                print '\twort={}'.format(fermentor.wort_temp)
-                if hasattr(fermentor, 'ambient_probe'):
-                    print '\tambient={}'.format(fermentor.ambient_temp)
-                if hasattr(fermentor, 'swamp_probe'):
-                    print '\tambient={}'.format(fermentor.swamp_probe)
 
 
 
@@ -1020,8 +1100,10 @@ def start():
                                                wort_temp=fermentor.wort_temp,
                                                swamp_cooler_temp=fermentor.swamp_temp,
                                                wort_file_name=fermentor.wort_probe.file_name,
-                                               ambient_file_name=ambient_file_name,
-                                               swamp_file_name=swamp_file_name,
+                                               ambient_file_name=fermentor.ambient_probe.file_name,
+                                               wort_file_name=fermentor.wort_probe.file_name,
+                                               #ambient_file_name=ambient_file_name,
+                                               #swamp_file_name=swamp_file_name,
                                                target_temp=fermentor.target_temp, # If a fermentor doesn't have a schedule, is target temp set correctly?
                                                temp_differential=fermentor.temp_differential,
                                                is_fermwrap_on=None,
@@ -1058,6 +1140,20 @@ def start():
                     # IF I can't save the particular instance where the fermwrap is switched on, then I lose that granularity!
                     print "Cannot create ferm_temp instance!:", ex.message
                     traceback.print_exc(file=sys.stdout)
+
+
+
+
+
+                # Print to Screen
+                print fermentor.name, "range = {} - {}".format(fermentor.min_temp, fermentor.max_temp)
+                print '\twort={}'.format(fermentor.wort_temp)
+                if hasattr(fermentor, 'ambient_probe'):
+                    print '\tambient={}'.format(fermentor.ambient_temp)
+                if hasattr(fermentor, 'swamp_probe'):
+                    print '\tambient={}'.format(fermentor.swamp_probe)
+                if fermentor.is_fermwrap:
+                    print '\tis_fermwrap_on? {}'.format(fermentor.is_fermwrap_on)
 
             try:
                 get_db().close()

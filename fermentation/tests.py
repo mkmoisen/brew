@@ -1267,10 +1267,20 @@ unittest.TextTestRunner(verbosity=2).run(suite)
 
 from fermentation import FermentationFermwrapHistory, Fermentor
 
+import time
 
 class TestFermwrapHistory(unittest.TestCase):
     def setUp(self):
         FermentationFermwrapHistory._meta.db_table += '_t'
+        get_db().drop_table(FermentationFermwrapHistory,True)
+        get_db().create_table(FermentationFermwrapHistory, True)
+        FermentationFermentor.create(name="hai",
+                                     start_date=datetime.now(),
+                                     start_temp=50,
+                                     temp_differential=0.125,
+                                     active=1,
+                                     material='glass',
+                                     host=1)
 
 
     def test_lol(self):
@@ -1278,7 +1288,8 @@ class TestFermwrapHistory(unittest.TestCase):
             name='Test FHistory',
             start_temp=50,
             temp_differential=0.125,
-            fermwrap_pin=17
+            fermwrap_pin=17,
+            id=1
         )
         self.assertEquals(fermentor.is_fermwrap, True)
         self.assertEquals(fermentor.is_fermwrap_on, False)
@@ -1305,6 +1316,7 @@ class TestFermwrapHistory(unittest.TestCase):
         self.assertEquals(fermentor.target_temp_at_start, fermentor.target_temp)
         self.assertEquals(fermentor.is_fermwrap_on, True)
 
+        time.sleep(2)
         # XCall fermwrap off first time
         dt = datetime(2015, 01, 01, 00, 20, 00)
         # verify fermwrap_turned_off_now = True
@@ -1321,6 +1333,7 @@ class TestFermwrapHistory(unittest.TestCase):
         self.assertEquals(fermentor.dt_fermwrap_turned_on, None)
         self.assertEquals(fermentor.is_fermwrap_on, False)
 
+        time.sleep(2)
         # Call fermwrap on third time
         dt = datetime(2015, 01, 01, 00, 30, 00)
         self.assertEquals(fermentor.turn_fermwrap_on(dt), True)
