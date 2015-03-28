@@ -1101,7 +1101,7 @@ def start():
                                                swamp_cooler_temp=fermentor.swamp_temp,
                                                wort_file_name=fermentor.wort_probe.file_name,
                                                ambient_file_name=fermentor.ambient_probe.file_name,
-                                               wort_file_name=fermentor.wort_probe.file_name,
+                                               swamp_file_name=fermentor.swamp_probe.file_name,
                                                #ambient_file_name=ambient_file_name,
                                                #swamp_file_name=swamp_file_name,
                                                target_temp=fermentor.target_temp, # If a fermentor doesn't have a schedule, is target temp set correctly?
