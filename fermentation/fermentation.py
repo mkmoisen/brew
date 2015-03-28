@@ -277,18 +277,16 @@ Schedule('2015-01-01 00:00:00', 50, [(5*24, 55),
         self.increases = []
         ''' Add the proper datetime to the ScheduleIncrease depending on the fermentor's start_date'''
         ''' This is stupid it should be date times inputted into the UI not hours noob '''
-        # TODO: Change this to dt instead of hours
-        # TODO: If end user says temp should increase 5 degrees in 12 hours,
-        # TODO: I should divide 5/12 = 0.41*F/hr and then add new increases appropriately
-        #for increase in increases:
-        #    increase.dt = self.start_date + timedelta(hours=increase.hours)
-        #    self.increases.append(increase)
-        # Should I sort by date time ascending here as a sanity check? Probably
+
+
         self.increases = increases
 
-        # Add start date/temp as first schedule
+        # If a fermentor doesn't have a schedule, increases will be an empty array.
+        if len(self.increases) == 0:
+            self.increases = [ScheduleIncrease(dt=self.start_date, temp=self.start_temp)]
+            return
 
-        #self.increases.insert(0, ScheduleIncrease(dt=self.start_date, temp=self.start_temp))
+
         self.increases.sort(key=lambda increase:increase.dt)
 
         computed_increases = []
@@ -553,7 +551,7 @@ class Fermentor(object):
                 fermentor=self.id,
                 dt=dt,
                 #ambient_file_name=None,
-                #ambient_temp=None,  # TODO: what if end user isn't ambient???
+                #ambient_temp=None,
                 wort_file_name=self.wort_probe.file_name,
                 wort_temp=self.wort_temp,
                 target_temp_at_start=self.target_temp_at_start,
@@ -580,10 +578,10 @@ class Fermentor(object):
                 #is.minutes_heater_on=None,
                 his.minutes_heater_off=None
             '''
-            if hasattr(self, 'ambient_probe'):
-                pass
-                #his.ambient_file_name=self.ambient_probe.file_name
-                #his.ambient_temp=self.ambient_temp
+            #if hasattr(self, 'ambient_probe'):
+            #    pass
+            his.ambient_file_name=self.ambient_probe.file_name
+            his.ambient_temp=self.ambient_temp
             his.save()
         except Exception as ex:
             print "failed to write fermwrap history to db:", ex.message
@@ -622,8 +620,6 @@ class Fermentor(object):
             io.output(self.fermwrap_pin, True)
             self.is_fermwrap_on = True
         return fermwrap_turned_on_now
-
-            # TODO: Update Fermwrap db table here
 
     def turn_fermwrap_off(self, dt=None, reason = None):
         fermwrap_turned_off_now = None
@@ -666,7 +662,6 @@ class Fermentor(object):
             self.is_fermwrap_on = False
 
         return fermwrap_turned_off_now
-            # TODO: Update Fermwrap db table here
 
 
 
@@ -677,23 +672,23 @@ class Fermentor(object):
     '''
     @property
     def min_temp(self):
-        if self.schedule is not None:
+        #if self.schedule is not None:
             current_temp = self.schedule.get_current_temp(start_temp=self.start_temp)
             return current_temp - self.temp_differential
-        return self.start_temp - self.temp_differential
+        #return self.start_temp - self.temp_differential
 
     @property
     def max_temp(self):
-        if self.schedule is not None:
+        #if self.schedule is not None:
             current_temp = self.schedule.get_current_temp(start_temp=self.start_temp)
             return current_temp + self.temp_differential
-        return self.start_temp + self.temp_differential
+        #return self.start_temp + self.temp_differential
 
     @property
     def target_temp(self):
-        if self.schedule is not None:
+        #if self.schedule is not None:
             return self.schedule.get_current_temp(start_temp=self.start_temp)
-        return self.start_temp
+        #return self.start_temp
 
     def __str__(self):
         line = 'Name: {}\n'.format(self.name)
@@ -1012,9 +1007,6 @@ def start():
             dt = datetime.now()
             print dt
 
-
-            # TODO: Unit test the various probe problems: cannot read, reading 80F, 124F, etc.
-
             # Get temps
             for fermentor in FermentorList:
                 try:
@@ -1023,23 +1015,17 @@ def start():
                     traceback.print_exc(file=sys.stdout)
                     print "Probe is probably disconnected! Cannot read wort temp. Turning off fermwrap.", ex.message
                     fermentor.turn_fermwrap_off()
-                    # go to next fermentor so you dont insert previous value
-                    # TODO: What about setting fermentor.wrot_temp to null and saving it to the db to indicate an error?
-                    continue
+                    fermentor.wort_temp = None
                 except RuntimeError as ex:
                     traceback.print_exc(file=sys.stdout)
                     print "RuntimeError > 25 second retyring or 185F. Cannot read wort temp. Turning off fermwrap.", ex.message
                     fermentor.turn_fermwrap_off()
-                    # go to next fermentor so you dont insert previous value
-                    # TODO: What about setting fermentor.wrot_temp to null and saving it to the db to indicate an error?
-                    continue
+                    fermentor.wort_temp = None
                 except Exception as ex:
                     traceback.print_exc(file=sys.stdout)
                     print "Unkown Error. Cannot read wort temp. Turning off fermwrap",ex.message
                     fermentor.turn_fermwrap_off()
-                    # go to next fermentor so you dont insert previous value
-                    # TODO: What about setting fermentor.wrot_temp to null and saving it to the db to indicate an error?
-                    continue
+                    fermentor.wort_temp = None
 
 
                 try:

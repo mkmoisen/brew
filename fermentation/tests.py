@@ -1265,7 +1265,7 @@ unittest.TextTestRunner(verbosity=2).run(suite)
 
 '''
 
-from fermentation import FermentationFermwrapHistory, Fermentor
+from fermentation import FermentationFermwrapHistory, Fermentor, FermentorList, Properties
 
 import time
 
@@ -1274,7 +1274,7 @@ class TestFermwrapHistory(unittest.TestCase):
         FermentationFermwrapHistory._meta.db_table += '_t'
         get_db().drop_table(FermentationFermwrapHistory,True)
         get_db().create_table(FermentationFermwrapHistory, True)
-        FermentationFermentor.create(name="hai",
+        FermentationFermentor.create(name="Test FHistory",
                                      start_date=datetime.now(),
                                      start_temp=50,
                                      temp_differential=0.125,
@@ -1284,6 +1284,24 @@ class TestFermwrapHistory(unittest.TestCase):
 
 
     def test_lol(self):
+        properties = {'updated':True,
+                      'fermentors':[
+                          {'name':'Test FHistory',
+                            'start_temp':50,
+                            'start_date':datetime.now().strftime('%Y-%m-%dT%H:%M:%S'),
+                            'temp_differential':0.125,
+                            'fermwrap_pin':17,
+                            'id':1,
+                            'schedule':[],
+                            'probes':[
+                                {'file_name':'123','type':'wort'}
+                            ]
+                            }
+                      ]}
+
+
+        Properties.construct_fermentor_list(properties)
+        '''
         fermentor = Fermentor(
             name='Test FHistory',
             start_temp=50,
@@ -1291,13 +1309,19 @@ class TestFermwrapHistory(unittest.TestCase):
             fermwrap_pin=17,
             id=1
         )
+        '''
+        fermentor = next((fermentor for fermentor in FermentorList if fermentor.name == 'Test FHistory'),None)
+        print "fermentor wort probe = ",fermentor.wort_probe
         self.assertEquals(fermentor.is_fermwrap, True)
         self.assertEquals(fermentor.is_fermwrap_on, False)
         self.assertEquals(hasattr(fermentor, 'dt_fermwrap_turned_on'), False)
         self.assertEquals(hasattr(fermentor, 'dt_fermwrap_turned_off'), False)
 
+
+        fermentor.ambient_temp = 40
         # Turn fermwrap on the first time
         dt = datetime(2015,01,01,00,00,00)
+        fermentor.wort_temp = 48.5
         # Verify fermwrap_turned_on_now = True
         self.assertEquals(fermentor.turn_fermwrap_on(dt), True)
         dt_fermwrap_turned_on = fermentor.dt_fermwrap_turned_on
