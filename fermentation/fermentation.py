@@ -455,7 +455,7 @@ for i in xrange(0, 10):
 '''
 class Fermentor(object):
     def __init__(self, name=None, start_temp=None, temp_differential=None, fermwrap_pin=None, schedule=None, id=None):
-        self.probes = []
+        self._probes = []
         self.name = name
         self.is_disconnected = False # What is this for?
         self.is_fermwrap = False
@@ -483,16 +483,16 @@ class Fermentor(object):
 
     @property
     def probes(self):
-        return self.probes
+        return self._probes
 
     @probes.setter
     def probes(self, probes):
         is_wort = False
         is_ambient = False
         is_swamp = False
-        self.probes = []
+        self._probes = []
         for probe in probes:
-            self.probes.append(probe)
+            self._probes.append(probe)
             if probe.probe_type == 'wort':
                 self.wort_probe = probe
                 is_wort = True
