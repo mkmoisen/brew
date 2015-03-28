@@ -19,7 +19,8 @@ class Probe(object):
         self.probe_type = probe_type
         self.file_name = file_name
         self.retry_count = 0
-
+        if file_name is None:
+            return
 
         device_folder = Probe.BASE_DIR + file_name
         self.device_file = device_folder + '/w1_slave'
