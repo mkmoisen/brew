@@ -1148,10 +1148,12 @@ def start():
                 # Print to Screen
                 print fermentor.name, "range = {} - {}".format(fermentor.min_temp, fermentor.max_temp)
                 print '\twort={}'.format(fermentor.wort_temp)
-                if hasattr(fermentor, 'ambient_probe'):
+                if fermentor.ambient_probe.file_name is not None:
+                #if hasattr(fermentor, 'ambient_probe'):
                     print '\tambient={}'.format(fermentor.ambient_temp)
-                if hasattr(fermentor, 'swamp_probe'):
-                    print '\tambient={}'.format(fermentor.swamp_probe)
+                if fermentor.swamp_probe.file_name is not None:
+                #if hasattr(fermentor, 'swamp_probe'):
+                    print '\tswamp={}'.format(fermentor.swamp_temp)
                 if fermentor.is_fermwrap:
                     print '\tis_fermwrap_on? {}'.format(fermentor.is_fermwrap_on)
 
