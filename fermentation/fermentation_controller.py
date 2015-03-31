@@ -221,7 +221,11 @@ def get_default_values():
     print "get_default_values()"
 
     hostname = socket.gethostname()
-    default_host_id = FermentationHost.get(FermentationHost.hostname==hostname).id
+    try:
+        default_host_id = FermentationHost.get(FermentationHost.hostname==hostname).id
+    except peewee.DoesNotExist:
+        default_host_id = None
+
     default_temp = 65
     default_temp_differential = 0.125
     default_material = 'glass'
@@ -344,6 +348,35 @@ def get_fermwrap_history():
 
     return json.dumps(fermwraps)
 
+@app.route('/fermentation/fermwrap-history/get/csv')
+@app.route('/fermentation/fermwrap-history/get/csv/')
+def get_fermwrap_history_csv():
+    get_db()
+
+    query = (
+        FermentationFermwrapHistory.select()
+        .join(FermentationFermentor, on=FermentationFermwrapHistory.fermentor)
+            .where(FermentationFermentor.active==1)
+        .order_by(FermentationFermwrapHistory.dt.desc())
+        .aggregate_rows()
+    )
+
+
+    fermwraps = ['fermentor,dt,ambient_temp,target_temp_at_start,target_temp_at_end,temp_differential,minutes_heater_on,minutes_heater_off\n']
+
+    for fermwrap in query:
+        fermwraps.append(','.join(map(str,[fermwrap.fermentor.name,fermwrap.dt.strftime('%Y-%m-%dT%H:%M:%S'),fermwrap.ambient_temp,
+                                   fermwrap.target_temp_at_start,fermwrap.target_temp_at_end,fermwrap.temp_differential,
+                                   fermwrap.minutes_heater_on,fermwrap.minutes_heater_off,])) + '\n')
+
+    get_db().close()
+
+    return json.dumps(fermwraps)
+
+@app.route('/fermentation/history/csv')
+@app.route('/fermentation/history/csv')
+def fermentor_history():
+    return template('fermentor_history_csv')
 
 @app.route('/fermentation/history')
 @app.route('/fermentation/history/')

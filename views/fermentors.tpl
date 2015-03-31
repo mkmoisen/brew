@@ -16,7 +16,9 @@
 
 <DIV class="container">
 
-    <TABLE class="table table-striped">
+    <IMG ng-hide="fermentorLoadingComplete" src="/static/images/spinner.gif" />
+
+    <TABLE ng-show="fermentorLoadingComplete" class="table table-striped">
             <THEAD>
                 <TH>Inactivate</TH>
                 <TH>Edit</TH>
@@ -98,7 +100,7 @@
 
 <HR />
 
-<BUTTON class="btn btn-success" ng-click="editFermentor('new')">
+<BUTTON ng-show="defaultLoadingComplete" class="btn btn-success" ng-click="editFermentor('new')">
     <SPAN class="glyphicon glyphicon-user"></SPAN> Create New Fermentor
 </BUTTON>
 
@@ -114,7 +116,7 @@
     <TABLE class="table">
         <THEAD>
             <TH>Hostname</TH>
-            <TH>Name</TH>
+            <TH>Name <SPAN style="color:red" ng-show="nameIncomplete">Required</SPAN></TH>
             <TH>Fermwrap Pin</TH>
             <TH>Start Date</TH>
             <TH>End Begin Date</TH>
@@ -130,8 +132,9 @@
             <TR>
                 <TD>
                     <SELECT ng-model="fermentor.host_id" ng-options="host.id as host.hostname for host in hosts"></SELECT>
+                    <SPAN style="color:red" ng-show="probesIncomplete">Wort Probe Required</SPAN>
                 </TD>
-                <TD><INPUT ng-model="fermentor.name" type="text" /></TD>
+                <TD><INPUT ng-model="fermentor.name" ng-invalid="nameIncomplete" type="text" /></TD>
                 <TD>
                     <SELECT ng-model="fermentor.fermwrap" ng-options="fermwrap.fermwrap as fermwrap.fermwrap for fermwrap in fermwraps"></SELECT>
                 </TD>
@@ -158,14 +161,14 @@
         <TBODY>
             <TR ng-repeat="probe in fermentor.probes">
                 <TD>
-                    <SELECT ng-model="probe.file_name" ng-options="probe for probe in probes">
+                    <SELECT ng-model="probe.file_name" ng-options="probe for probe in probes" ng-invalid="probesIncomplete">
 
 
 
                     </SELECT>
                 </TD>
                 <TD>
-                    <SELECT ng-model="probe.type" ng-options="probe_type for probe_type in probe_types">
+                    <SELECT ng-model="probe.type" ng-options="probe_type for probe_type in probe_types" ng-invalid="probesIncomplete">
 
 
                     </SELECT>
@@ -186,9 +189,11 @@
         <TBODY>
             <TR ng-repeat="schedule in fermentor.schedules">
                 <TD>
+                    <SPAN ng-show="schedule.dt_error" style="color:red">Bad Format</SPAN>
                     <INPUT ng-model="schedule.dt" />
                 </TD>
                 <TD>
+                    <SPAN ng-show="schedule.temp_error" style="color:red">Bad Number</SPAN>
                     <INPUT ng-model="schedule.temp" />
                 </TD>
                 <TD>
@@ -210,7 +215,7 @@
 
 <HR />
 
-<BUTTON ng-click="update()" class="btn btn-success">
+<BUTTON ng-disabled="probesIncomplete || nameIncomplete || scheduleIncomplete" ng-click="update()" class="btn btn-success">
     <SPAN class="glyphicon glyphicon-save"></SPAN> Save Changes
 </BUTTON>
 <SPAN ng-show="save_error" class="danger">Save Failed.</SPAN>
@@ -342,12 +347,15 @@
 
                     for (var o = 0; o < $scope.fermentors[i].schedules.length; o++) {
                         $scope.fermentors[i].schedules[o].index = o; // This is for the add/remove schedule feature to keep them in order
+                        $scope.fermentors[i].schedules[o].dt_error = false;
+                        $scope.fermentors[i].schedules[o].temp_error = false;
                         //$scope.fermentors[i].schedules[o].dt = new Date($scope.fermentors[i].schedules[o].dt);
 
                     }
                 }
                 $scope.next_index = $scope.fermentors.length; // Increment the index for next time if user creates new fermentor
 
+                $scope.fermentorLoadingComplete = true;
 
             }).
             error(function(data,status,headers,config) {
@@ -415,11 +423,16 @@
                 console.log("default_today = " + $scope.default_today);
 
                 $scope.reset();
+
+                $scope.defaultLoadingComplete = true;
             }).
             error(function(data, status, headers, config) {
                 console.log("noob get_default_values");
             });
         }
+
+        $scope.fermentorLoadingComplete = false;
+        $scope.defaultLoadingComplete = false;
 
         $scope.get_fermentors(); // Call the ajax to get an array of fermentors
         $scope.get_hosts();
@@ -473,7 +486,7 @@
 
         $scope.create = false;
         $scope.edit = false;
-        $scope.incomplete = false; // This should prevent the end user from submitting a form if he fucked up
+        //$scope.incomplete = false; // This should prevent the end user from submitting a form if he fucked up
         $scope.is_scheduled = false; // This is to show to initial add schedule button in case user doesnt want to add any temp schedules
         $scope.save_error = false; // This is for the span next to the save button if the AJAX returns an error
 
@@ -502,8 +515,12 @@
             $scope.fermentor.schedules.splice(index, 1);
         }
         $scope.increase_schedule = function(index) {
+            var m = new moment($scope.fermentor.schedules[index].dt, 'YYYY-MM-DDTHH:mm:ss', true);
+            if (!m.isValid()) {
+                return;
+            }
             for (var i = index; i < $scope.fermentor.schedules.length; i++) {
-                var m = new moment($scope.fermentor.schedules[i].dt);
+                var m = new moment($scope.fermentor.schedules[i].dt, 'YYYY-MM-DDTHH:mm:ss', true);
                 m.add(12, 'hours');
                 $scope.fermentor.schedules[i].dt = m.format('YYYY-MM-DDTHH:mm:ss');
 
@@ -511,8 +528,12 @@
             }
         }
         $scope.decrease_schedule = function(index) {
+            var m = new moment($scope.fermentor.schedules[index].dt, 'YYYY-MM-DDTHH:mm:ss', true);
+            if (!m.isValid()) {
+                return;
+            }
             for (var i = index; i < $scope.fermentor.schedules.length; i++) {
-                var m = new moment($scope.fermentor.schedules[i].dt);
+                var m = new moment($scope.fermentor.schedules[i].dt, 'YYYY-MM-DDTHH:mm:ss', true);
                 m.subtract(12, 'hours');
                 $scope.fermentor.schedules[i].dt = m.format('YYYY-MM-DDTHH:mm:ss');
             }
@@ -521,7 +542,7 @@
         $scope.create_schedule = function() {
 
             // Append an empty schedule
-            $scope.fermentor.schedules.push({'dt':null, 'temp':null, 'index':0});
+            $scope.fermentor.schedules.push({'dt':$scope.fermentor.start_date, 'temp':$scope.fermentor.start_temp, 'index':0});
 
             // Disable the inital add schedule button
             $scope.is_scheduled = true;
@@ -556,7 +577,9 @@
 
                 $scope.create = true;
                 $scope.edit = false;
-                $scope.incomplete = true;
+                $scope.probesIncomplete = true;
+                $scope.nameIncomplete = true;
+                $scope.scheduleIncomplete = false;
 
                 $scope.is_scheduled = false; // Not "is_scheduled" until punk ass end user clicks the first add schedule button
 
@@ -569,7 +592,9 @@
 
                 $scope.create = false;
                 $scope.edit = true;
-                $scope.incomplete = false;
+                $scope.probesIncomplete = false;
+                $scope.nameIncomplete = false;
+                $scope.scheduleIncomplete = false;
 
                 // Pull the correct fermentor from the array bia the index_order dict
                 var fermentor = $scope.fermentors[$scope.index_order[id]];
@@ -609,12 +634,21 @@
         $scope.$watch('fermentor.fermwrap', function() {$scope.watch_fermwrap();});
 
         $scope.watch_name = function() {
-            /* This is not necessary */
             if ($scope.edit) {
                 if ($scope.fermentor.name != $scope.edit_original.name) {
                     console.log("name differs");
                 } else {
                     console.log("name not different");
+                }
+            }
+
+            if ($scope.hasOwnProperty('fermentor')) {
+                if ($scope.fermentor.name == null || $scope.fermentor.name == '') {
+                    $scope.nameIncomplete = true;
+                    console.log("name is incomplete");
+                } else {
+                    $scope.nameIncomplete = false;
+                    console.log("name is complete");
                 }
             }
         }
@@ -635,6 +669,28 @@
                 $scope.fermentor.probes_updated = true;
                 console.log("probes differ");
             }
+
+
+            if ($scope.hasOwnProperty('fermentor')) {
+                var probesIncomplete = true;
+                for (var i = 0; i < $scope.fermentor.probes.length; i++) {
+                    console.log('$scope.fermentor.probes[i].type == ' + $scope.fermentor.probes[i].type + '; $scope.fermentor.probes[i].file_name ==' + $scope.fermentor.probes[i].file_name);
+                    if ($scope.fermentor.probes[i].type == 'wort' && $scope.fermentor.probes[i].file_name != null) {
+                        probesIncomplete = false;
+                        //$scope.probesIncomplete = false;
+                        //console.log("probesIncomplete = false");
+                    }
+                }
+
+                if (probesIncomplete) {
+                    $scope.probesIncomplete = true;
+                    console.log("probesIncomplete = true");
+                } else {
+                    $scope.probesIncomplete = false;
+                    console.log("probesIncomplete = false");
+                }
+            }
+
         }
 
         $scope.watch_schedule = function() {
@@ -652,6 +708,32 @@
                 $scope.fermentor.schedule_updated = true;
                 console.log("schedule updated");
             }
+
+            if ($scope.hasOwnProperty('fermentor')) {
+                var scheduleIncomplete = false;
+                for (var i = 0; i < $scope.fermentor.schedules.length; i++) {
+                    console.log('$scope.fermentor.schedules[i].temp == ' + $scope.fermentor.schedules[i].temp);
+                    console.log('$scope.fermentor.schedules[i].dt == ' + $scope.fermentor.schedules[i].dt);
+                    console.log('isNaN($scope.fermentor.schedules[i].temp == ' + isNaN($scope.fermentor.schedules[i].temp));
+                    if ($scope.fermentor.schedules[i].temp == null || $scope.fermentor.schedules[i].temp == '' || isNaN($scope.fermentor.schedules[i].temp)) {
+                        scheduleIncomplete = true;
+                        $scope.fermentor.schedules[i].temp_error = true;
+                    } else {
+                        $scope.fermentor.schedules[i].temp_error = false;
+                    }
+                    var m = new moment($scope.fermentor.schedules[i].dt, 'YYYY-MM-DDTHH:mm:ss', true);
+                    console.log('!m.isValid() == ' + !m.isValid());
+                    if (!m.isValid()) {
+                        scheduleIncomplete = true;
+                        $scope.fermentor.schedules[i].dt_error = true;
+                    } else {
+                        $scope.fermentor.schedules[i].dt_error = false;
+                    }
+                }
+                $scope.scheduleIncomplete = scheduleIncomplete;
+            }
+
+
         }
 
         $scope.watch_fermwrap = function() {

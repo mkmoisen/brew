@@ -535,8 +535,6 @@ class Fermentor(object):
                 his = FermentationFermwrapHistory(
                     fermentor=self.id,
                     dt=dt,
-                    #ambient_file_name=None,
-                    #ambient_temp=None,  # TODO: what if end user isn't ambient???
                     wort_file_name=self.wort_probe.file_name,
                     wort_temp=self.wort_temp,
                     target_temp_at_start=self.target_temp_at_start,
@@ -550,8 +548,6 @@ class Fermentor(object):
                 his = FermentationFermwrapHistory(
                 fermentor=self.id,
                 dt=dt,
-                #ambient_file_name=None,
-                #ambient_temp=None,
                 wort_file_name=self.wort_probe.file_name,
                 wort_temp=self.wort_temp,
                 target_temp_at_start=self.target_temp_at_start,
@@ -560,26 +556,7 @@ class Fermentor(object):
                 minutes_heater_on=(self.dt_fermwrap_turned_off - self.dt_fermwrap_turned_on).total_seconds()/60.0,
                 minutes_heater_off=None,
             )
-            '''
-            if heater_on:
-                pass
-                #his.minutes_heater_on=None,
-                val = (self.dt_fermwrap_turned_on - self.dt_fermwrap_turned_off).total_seconds()/60.0
 
-                print "val = {}".format(val)
-                #his.minutes_heater_off=(val)
-                #his.minutes_heater_off=1
-                his.minutes_heater_on=None,
-            else:
-                pass
-                val = (self.dt_fermwrap_turned_off - self.dt_fermwrap_turned_on).total_seconds()/60.0
-                print "val = {}".format(val)
-                #his.minutes_heater_on=(val),
-                #is.minutes_heater_on=None,
-                his.minutes_heater_off=None
-            '''
-            #if hasattr(self, 'ambient_probe'):
-            #    pass
             his.ambient_file_name=self.ambient_probe.file_name
             his.ambient_temp=self.ambient_temp
             his.save()
@@ -610,9 +587,12 @@ class Fermentor(object):
                         self._insert_fermwrap_history(dt=dt, heater_on=True)
 
                         self.dt_fermwrap_turned_off = None
-                    else:
+                    #else:
                         #TODO this looks superflous but it doesnt hurt. Move this
-                        self.target_temp_at_start = self.target_temp
+                        # LOL THIS IS CAUSING AN ERROR NOOB
+                        # The reason I did this was for the very first time when no insert because turn off had not been called right?
+
+                    self.target_temp_at_start = self.target_temp
             except Exception as ex:
                 print "failed to do fermwrap history:", ex.message
                 traceback.print_exc(file=sys.stdout)
@@ -620,6 +600,8 @@ class Fermentor(object):
             io.output(self.fermwrap_pin, True)
             self.is_fermwrap_on = True
         return fermwrap_turned_on_now
+
+
 
     def turn_fermwrap_off(self, dt=None, reason = None):
         fermwrap_turned_off_now = None
@@ -650,9 +632,10 @@ class Fermentor(object):
                         self._insert_fermwrap_history(dt=dt, heater_on=False)
 
                         self.dt_fermwrap_turned_on = None
-                    else:
+                    #else:
                         #TODO this looks superflous but it doesnt hurt. Move this
-                        self.target_temp_at_start = self.target_temp
+                        # LOL THIS IS CAUSING AN ERROR NOOB
+                    self.target_temp_at_start = self.target_temp
 
             except Exception as ex:
                 print "failed to do fermwrap history:", ex.message
@@ -665,30 +648,21 @@ class Fermentor(object):
 
 
 
-    #TODO:
-    '''
-    These properties shouldn't have to check if schedule is None.
-    A fermentor with no schedule should create a schedule with one entry
-    '''
+
     @property
     def min_temp(self):
-        #if self.schedule is not None:
-            current_temp = self.schedule.get_current_temp(start_temp=self.start_temp)
-            return current_temp - self.temp_differential
-        #return self.start_temp - self.temp_differential
+        current_temp = self.schedule.get_current_temp(start_temp=self.start_temp)
+        return current_temp - self.temp_differential
 
     @property
     def max_temp(self):
-        #if self.schedule is not None:
-            current_temp = self.schedule.get_current_temp(start_temp=self.start_temp)
-            return current_temp + self.temp_differential
-        #return self.start_temp + self.temp_differential
+        current_temp = self.schedule.get_current_temp(start_temp=self.start_temp)
+        return current_temp + self.temp_differential
 
     @property
     def target_temp(self):
-        #if self.schedule is not None:
-            return self.schedule.get_current_temp(start_temp=self.start_temp)
-        #return self.start_temp
+        return self.schedule.get_current_temp(start_temp=self.start_temp)
+
 
     def __str__(self):
         line = 'Name: {}\n'.format(self.name)
