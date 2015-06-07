@@ -12,6 +12,8 @@ import logging
 LOG_FILENAME = 'ds18b20.log'
 logger = logging.getLogger('test_ds18b20')
 logger.setLevel(logging.DEBUG)
+handler = logging.FileHandler(LOG_FILENAME)
+logger.addHandler(handler)
 
 def probes():
     if len(sys.argv) == 1:
