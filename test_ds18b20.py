@@ -13,7 +13,10 @@ LOG_FILENAME = 'ds18b20.log'
 logger = logging.getLogger('test_ds18b20')
 logger.setLevel(logging.DEBUG)
 handler = logging.FileHandler(LOG_FILENAME)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
 logger.addHandler(handler)
+logger.addHandler(logging.StreamHandler)
 
 def probes():
     if len(sys.argv) == 1:
