@@ -26,22 +26,16 @@ class Probe(object):
         self.device_file = device_folder + '/w1_slave'
 
     def read_temp_raw(self):
-        print "{} before open(self.device_file)...".format(self.file_name)
         with open(self.device_file, 'r') as f:
-            print "{} before return".format(self.file_name)
             return f.readlines()
-        print "{} after open(self.device_file)...".format(self.file_name)
 
     @property
     def temp(self):
         if self.file_name is None:
             # Account for testing or lack of ambient/swamp probe
             return None
-        print "{} before lines = self.read_temp_raw()".format(self.file_name)
         lines = self.read_temp_raw()
-        print "{} after lines - self.read_temp_raw()".format(self.file_name)
         while lines[0].strip()[-3:] != 'YES':
-            print "trying to read lol"
             if self.retry_count < Probe.RETRY_MAX:
                 self.retry_count += 1
                 time.sleep(5) # Is this bad ?
