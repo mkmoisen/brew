@@ -16,7 +16,7 @@ handler = logging.FileHandler(LOG_FILENAME)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-logger.addHandler(logging.StreamHandler)
+logger.addHandler(logging.StreamHandler())
 
 def probes():
     if len(sys.argv) == 1:
