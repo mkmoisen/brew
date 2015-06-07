@@ -37,6 +37,7 @@ class Probe(object):
 
         lines = self.read_temp_raw()
         while lines[0].strip()[-3:] != 'YES':
+            print "trying to read lol"
             if self.retry_count < Probe.RETRY_MAX:
                 self.retry_count += 1
                 time.sleep(5) # Is this bad ?
