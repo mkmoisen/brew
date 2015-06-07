@@ -19,10 +19,19 @@ logger.addHandler(handler)
 logger.addHandler(logging.StreamHandler())
 
 def probes():
+    probes = []
     if len(sys.argv) == 1:
-        probes = [Probe('hlt', file) for file in os.listdir(Probe.BASE_DIR) if file != 'w1_bus_master1']
+        #probes = [Probe('hlt', file) for file in os.listdir(Probe.BASE_DIR) if file != 'w1_bus_master1']
+        files = [file for file in os.listdir(Probe.BASE_DIR) if file != 'w1_bus_master1']
     else:
-        probes = [Probe('hlt', file) for file in sys.argv[1:]]
+        files = [file for file in sys.argv[1:]]
+
+    for file in files:
+        try:
+            probe = Probe('hlt', file)
+            probes.append(probe)
+        except Exception as ex:
+            logger.exception("Failed to initialize probe {}: {}".format(file, ex.message))
 
     return probes
 
