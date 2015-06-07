@@ -10,7 +10,7 @@ from datetime import datetime
 import logging
 
 LOG_FILENAME = 'ds18b20.log'
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('test_ds18b20')
 logger.setLevel(logging.DEBUG)
 
 def probes():
