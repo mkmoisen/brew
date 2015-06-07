@@ -31,7 +31,7 @@ def probes():
             probe = Probe('hlt', file)
             probes.append(probe)
         except Exception as ex:
-            logger.exception("Failed to initialize probe {}: {}".format(file, ex.message))
+            logger.error("Failed to initialize probe {}: {} - {}".format(file, ex.__class__.__name__, ex.message))
 
     return probes
 
@@ -43,6 +43,6 @@ while True:
             print "{} temperature is {}".format(probe.file_name, probe.temp)
         except Exception as ex:
             print "Error reading {}: ".format(probe.file_name), ex.__class__.__name__, ex.message
-            logger.exception("Error reading {}: {}".format(probe.file_name, ex.message))
+            logger.error("Error reading {}: {} - {}".format(probe.file_name, ex.__class__.__name__, ex.message))
 
     time.sleep(5)
