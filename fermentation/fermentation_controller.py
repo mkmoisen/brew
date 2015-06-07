@@ -296,7 +296,9 @@ def get_raw_temperature():
            .join(FermentationFermentor, on=FermentationTemperature.fermentor)
                 .where(FermentationFermentor.active == 1)
            .order_by(FermentationTemperature.dt.desc())
-           .limit(100)
+           .limit(1000)
+           .aggregate_rows()
+
     )
     temps = []
     for temp in query:
