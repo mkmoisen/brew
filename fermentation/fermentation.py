@@ -651,9 +651,7 @@ class Fermentor(object):
 
     @property
     def min_temp(self):
-        print "self.start_temp type is ", type(self.start_temp)
         current_temp = self.schedule.get_current_temp(start_temp=self.start_temp)
-        print "current_temp is ", current_temp, "type is ", type(current_temp)
         return current_temp - self.temp_differential
 
     @property
@@ -744,7 +742,7 @@ class Properties(object):
             f['id']=fermentor.id
             f['name']=fermentor.name
             f['start_date']=fermentor.start_date.strftime('%Y-%m-%dT%H:%M:%S')
-            f['start_temp'] = fermentor.start_temp
+            f['start_temp'] = float(fermentor.start_temp)
             f['temp_differential'] = fermentor.temp_differential
             if fermentor.fermentor_fermwraps.count() > 0:
                 fermwrap = fermentor.fermentor_fermwraps.get()
