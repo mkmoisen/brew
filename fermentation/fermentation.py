@@ -652,7 +652,7 @@ class Fermentor(object):
     @property
     def min_temp(self):
         current_temp = self.schedule.get_current_temp(start_temp=self.start_temp)
-        print "current_temp is ", current_temp
+        print "current_temp is ", current_temp, "type is ", type(current_temp)
         return current_temp - self.temp_differential
 
     @property
