@@ -556,7 +556,7 @@ def fermentors_change():
 
             if properties_fermentor is None:
                 #TODO: This is a big mistake if this line gets triggered. Either I'm trying to update the wrong RPi or something catastrophic happened
-                raise Exception("NOOB")
+                raise Exception("This is a big mistake if this line gets triggered. Either I'm trying to update the wrong RPi or something catastrophic happened")
             db_fermentor = FermentationFermentor.get(id=fermentor['id'])
             db_fermentor.name = fermentor['name']
             db_fermentor.start_date = datetime.strptime(fermentor['start_date'], '%Y-%m-%dT%H:%M:%S')
@@ -581,6 +581,8 @@ def fermentors_change():
         #create/modify brew.properties fermentor
         properties_fermentor['name'] = db_fermentor.name
         properties_fermentor['start_date'] = db_fermentor.start_date.strftime('%Y-%m-%dT%H:%M:%S')
+        print "*****************************************"
+        print "WHAT IS db_fermentor.start_temp? ", db_fermentor.start_temp, type(db_fermentor.start_temp)
         properties_fermentor['start_temp'] = db_fermentor.start_temp
         properties_fermentor['temp_differential'] = db_fermentor.temp_differential
 
@@ -673,7 +675,11 @@ def fermentors_change():
         ### OK what if it fails to write here?
         # If the file system is read only, that is fine because poll will pick it up from DB.
         # But if its just a temporary write problem, then poll will read from outdated file system!
+
+        print "**********************************************"
+        print "WHAT IS START TEMP? ", properties_fermentor['start_temp'], type(properties_fermentor['start_temp'])
         if should_write_properties:
+
             Properties.write_properties_file(properties)
 
 
@@ -689,12 +695,3 @@ def fermentors_change():
     #if fermentor['id'] == '':
 
 
-
-
-test = [{'id':1,'name':'matt'}, {'id':2,'name':'mark'}]
-
-lol = next((item for item in test if item['name'] == 'matt'), None)
-
-lol['name']='LOLOL'
-lol
-test
