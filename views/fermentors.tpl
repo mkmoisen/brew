@@ -9,7 +9,7 @@
     <script src="/static/js/bootstrap.min.js"></script>
     <script src="/static/js/moment.js"></script>
 
-    <script src= "http://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular.min.js"></script>
+    <script src= "https://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular.min.js"></script>
 
 </head>
 <body  ng-app="myApp" ng-controller="fermentorController" >

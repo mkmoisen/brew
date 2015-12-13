@@ -915,7 +915,7 @@ class Properties(object):
             ]}
         '''
         FermentorList.clear() # This needs to check to see if a fermentor is being removed on the update and turn off its fermwrap
-        # Wait if this turns off the fermwrap every time i poll then I will just be decrementing the life of the powerswitch tail noob!
+        # Wait-- if this turns off the fermwrap every time i poll then I will just be decrementing the life of the powerswitch tail noob!
 
         for fermentor in properties['fermentors']:
             f = Fermentor(name=fermentor['name'],
@@ -988,17 +988,17 @@ def start():
                 except IOError as ex:
                     traceback.print_exc(file=sys.stdout)
                     print "Probe is probably disconnected! Cannot read wort temp. Turning off fermwrap.", ex.message
-                    fermentor.turn_fermwrap_off()
+                    fermentor.turn_fermwrap_off(dt=dt)
                     fermentor.wort_temp = None
                 except RuntimeError as ex:
                     traceback.print_exc(file=sys.stdout)
-                    print "RuntimeError > 25 second retyring or 185F. Cannot read wort temp. Turning off fermwrap.", ex.message
-                    fermentor.turn_fermwrap_off()
+                    print "RuntimeError > 25 second retyring or 185F/35F. Cannot read wort temp. Turning off fermwrap.", ex.message
+                    fermentor.turn_fermwrap_off(dt=dt)
                     fermentor.wort_temp = None
                 except Exception as ex:
                     traceback.print_exc(file=sys.stdout)
                     print "Unkown Error. Cannot read wort temp. Turning off fermwrap",ex.message
-                    fermentor.turn_fermwrap_off()
+                    fermentor.turn_fermwrap_off(dt=dt)
                     fermentor.wort_temp = None
 
 
@@ -1081,17 +1081,19 @@ def start():
                 fermwrap_turned_off_now = None
 
                 if fermentor.is_fermwrap:
-                    if fermentor.wort_temp < fermentor.min_temp:
-                        print "\tFermwrap=ON as temp < {}".format(fermentor.min_temp)
-                        fermwrap_turned_on_now = fermentor.turn_fermwrap_on(dt=dt)
-                        if ferm_temp is not None:
-                            ferm_temp.fermwrap_turned_on_now =fermwrap_turned_on_now
+                    #wort_temp might be None if probe was not detected
+                    if fermentor.wort_temp:
+                        if fermentor.wort_temp < fermentor.min_temp:
+                            print "\tFermwrap=ON as temp < {}".format(fermentor.min_temp)
+                            fermwrap_turned_on_now = fermentor.turn_fermwrap_on(dt=dt)
+                            if ferm_temp is not None:
+                                ferm_temp.fermwrap_turned_on_now =fermwrap_turned_on_now
 
-                    elif fermentor.wort_temp > fermentor.max_temp:
-                        print "\tFermwrap=OFF as temp > {}".format(fermentor.max_temp)
-                        fermwrap_turned_off_now = fermentor.turn_fermwrap_off(dt=dt)
-                        if ferm_temp is not None:
-                            ferm_temp.fermwrap_turned_off_now = fermwrap_turned_off_now
+                        elif fermentor.wort_temp > fermentor.max_temp:
+                            print "\tFermwrap=OFF as temp > {}".format(fermentor.max_temp)
+                            fermwrap_turned_off_now = fermentor.turn_fermwrap_off(dt=dt)
+                            if ferm_temp is not None:
+                                ferm_temp.fermwrap_turned_off_now = fermwrap_turned_off_now
 
                     ferm_temp.is_fermwrap_on = fermentor.is_fermwrap_on
                 try:

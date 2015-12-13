@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Bootstrap -->
+   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+<script src= "http://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular.min.js"></script>
+</head>
+
+<body>
+
+<div ng-app="myApp" ng-controller="owbController" class="container">
+    <h2> OWB - Mediation</h2>
+    <table class="table table-striped">
+        <thead>
+            <th>Usage Type</th>
+            <th>Bu Data Frequency</th>
+            <th>Rating Model</th>
+            <th>Nature of Usage</th>
+            <th>Time Dimension</th>
+            <th>Aggregate Function</th>
+            <th>Snapshot Logic</th>
+        </thead>
+
+        <tbody>
+
+            <td>PADMAN_UT</td>
+
+            <td>
+                <select ng-model="bu_data_frequency">
+                <option value="daily">Daily</option>
+                <option value="monthly">Monthly</option>
+                </select>
+            </td>
+            <td>
+                <select ng-model="rating_model">
+                    <option value="flat_rate">Flat Rate</option>
+                    <option value="tier">Tier</option>
+                    <option value="other">Other / I Don't know</option>
+                </select>
+            </td>
+            <td>
+                <select ng-model="nature_of_usage">
+                    <option value="incremental">Incremental</option>
+                     <option value="other">Other / I Don't know</option>
+                </select>
+            </td>
+            <td>
+                <select ng-model="time_dimension">
+                    <option value="udr">UDR</option>
+                    <option value="daily">Daily</option>
+                    <option value="monthly">Monthly</option>
+                     <option value="other">Other / I Don't know</option>
+                </select>
+            </td>
+            <td>
+                <select ng-model="aggregate_function" ng-options="o.id as o.name for o in aggregate_functions" ng-disabled="is_aggregate_disabled">
+                    <!--
+                    <option value="none">none</option>
+                    <option value="sum">Sum</option>
+                    <option value="avg">Average</option>
+                    <option value="max">Max</option>
+                    <option value="count">Count</option>
+                    <option value="min">Min</option>
+                     <option value="other">Other / I Don't know</option>
+                     -->
+                </select>
+            </td>
+            <td>
+                <select ng-model="snapshot_logic" ng-disabled="is_snapshot_disabled">
+                    <option value="false">False</option>
+                     <option value="true">True</option>
+                </select>
+            </td>
+        </tbody>
+
+
+    </table>
+
+    <button ng-click="clear()" type="button" class="btn btn-default">Clear</button>
+
+    <hr>
+    <table>
+        <tr>
+            <td>
+                Question: {{question.text}}<br/>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <button ng-click="next_question(question.id)" type="button" class="btn btn-primary">Next</button>
+            </td>
+        </tr>
+    </table>
+
+    <div id="result">
+
+    </div>
+
+    <hr />
+        <h2>Definitions:</h2>
+        <table class="table">
+            <tr>
+                <td>BU Data Frequency</td>
+                <td>How often does the BU's source system and SBP exchange the usage data? Once a day, or once a month?</td>
+            </tr>
+            <tr>
+                <td>Rating Model</td>
+                <td>How the BU wishes to apply a price to their usage. This can be Flat Rate or Tier.<br/>
+                    <b>Flat Rate</b>:Irrespective of the size of the quantity, all usage is charged the same rate.<br/>
+                    <b>Tier</b>:Usage is charged different rates in respect to the size of the quantity.
+                </td>
+            </tr>
+            <tr>
+                <td>Nature of Usage</td>
+                <td>What the usage represents. Currently only Incremental is supported, with Delta supported in the future<br/>
+                    <b>Incremental</b>: Each UDR the Source System sends to Mediation represents the total quantity used only during the UDR start and end time. This is the normal case in almost all situations.</br>
+                    <b>Delta</b>: Each UDR the Source System sends to Mediation represents the net change in usage during the UDR start and end time.
+                </td>
+            </tr>
+            <tr>
+                <td>Time Dimension</td>
+                <td>The time granularity of the rating model in relation to the usage. This is tied directly into aggregate function.<br/>
+                    For example, a Tier can be applied to usage over the course of a day, or over the course of a month.
+                    A Flat Rate could be applied to an average computed over the course of a day, or over the course of a month.</td>
+            </tr>
+            <tr>
+                <td>Aggregate Function</td>
+                <td>Should an aggregate function be applied to the data prior to rating it? This is tied directly into time dimension.<br/>
+                    For example, should an average be taken over some time dimension, and the rate be applied to the average instead of the raw data?<br/>
+                    Note that for Flat Rate, a sum cannot be applied over a time dimension. This is because a flat rate applied to a sum or to the components of the sum is identical. In this case, just chose a time dimension of UDR.
+                </td>
+            </tr>
+            <tr>
+                <td>Snapshot Logic</td>
+                <td>Snapshot Logic is when the BU sends usage data to Mediation daily, but the BU only wants one day of usage to be rated, that which is closest to the customer's bill day.</td>
+            </tr>
+
+        </table>
+
+</div>
+
+<script>
+angular.module('myApp', []).controller('owbController', ['$scope', function($scope) {
+    $scope.clear = function() {
+        $scope.bu_data_frequency = 'daily';
+        $scope.rating_model = 'flat_rate';
+        $scope.nature_of_usage = 'incremental';
+        $scope.time_dimension = 'udr';
+        $scope.aggregate_function = 'none';
+        $scope.snapshot_logic = 'false';
+
+        $scope.is_snapshot_disabled = false;
+    }
+    $scope.bu_data_frequency = 'daily';
+    $scope.rating_model = 'flat_rate';
+    $scope.nature_of_usage = 'incremental';
+    $scope.time_dimension = 'udr';
+    $scope.aggregate_function = 'none';
+    $scope.snapshot_logic = 'false';
+
+    $scope.$watch('bu_data_frequency', function() { $scope.watch_bu_data_frequency();});
+    $scope.$watch('rating_model', function() { $scope.watch_rating_model();});
+    $scope.$watch('time_dimension', function() { $scope.watch_time_dimension();});
+    $scope.$watch('aggregate_function', function() { $scope.watch_aggregate_function();});
+    $scope.$watch('snapshot_logic', function() {$scope.watch_snapshot_logic();});
+
+    $scope.watch_bu_data_frequency = function() {
+        console.log($scope.bu_data_frequency);
+        if ($scope.bu_data_frequency == 'monthly') {
+            $scope.is_snapshot_disabled = true;
+        } else {
+             if ($scope.time_dimension != 'monthly') {
+                $scope.is_snapshot_disabled = false;
+             }
+        }
+    }
+    $scope.watch_rating_model = function() {
+        console.log($scope.rating_model);
+        if ($scope.aggregate_function != 'none') {
+            if ($scope.rating_model == 'flat_rate') {
+                $scope.aggregate_functions = $scope.no_sum_aggregate_functions
+                $scope.aggregate_function = 'avg';
+            } else {
+                $scope.aggregate_functions = $scope.no_none_aggregate_functions
+                $scope.aggregate_function = 'sum';
+            }
+        }
+    }
+
+    $scope.watch_time_dimension = function() {
+        console.log($scope.time_dimension);
+        if ($scope.time_dimension == 'udr') {
+            $scope.is_aggregate_disabled = true;
+            $scope.aggregate_functions = $scope.all_aggregate_functions;
+            $scope.aggregate_function = 'none';
+
+        } else {
+            $scope.is_aggregate_disabled = false;
+            if ($scope.rating_model == 'flat_rate') {
+                console.log("Disable sum");
+                $scope.aggregate_functions = $scope.no_sum_aggregate_functions
+                $scope.aggregate_function = 'avg';
+            } else {
+                console.log("Disable none");
+                $scope.aggregate_functions = $scope.no_none_aggregate_functions
+                $scope.aggregate_function = 'sum';
+            }
+            if ($scope.time_dimension == 'monthly') {
+                console.log('MONTHLY&&*');
+                $scope.is_snapshot_disabled = true;
+            } else {
+                if ($scope.bu_data_frequency == 'daily') {
+                    $scope.is_snapshot_disabled = false;
+                }
+            }
+        }
+    }
+
+    $scope.watch_aggregate_function = function() {
+        console.log($scope.aggregate_function);
+    }
+
+    $scope.watch_snapshot_logic = function() {
+        console.log($scope.snapshot_logic);
+    }
+    $scope.is_snapshot_disabled = false;
+    $scope.is_aggregate_disabled = false;
+
+    $scope.all_aggregate_functions = [{'name': 'None', 'id': 'none'},
+                                      {'name': 'Sum', 'id': 'sum'},
+                                      {'name': 'Average', 'id': 'avg'},
+                                      {'name': 'Max', 'id': 'max'},
+                                      {'name': 'Count', 'id': 'count'},
+                                      {'name': 'Min', 'id': 'mind'}];
+
+    $scope.no_sum_aggregate_functions = [{'name': 'Average', 'id': 'avg'},
+                                      {'name': 'Max', 'id': 'max'},
+                                      {'name': 'Count', 'id': 'count'},
+                                      {'name': 'Min', 'id': 'mind'}];
+
+    $scope.no_none_aggregate_functions = [{'name': 'Sum', 'id': 'sum'},
+                                      {'name': 'Average', 'id': 'avg'},
+                                      {'name': 'Max', 'id': 'max'},
+                                      {'name': 'Count', 'id': 'count'},
+                                      {'name': 'Min', 'id': 'mind'}];
+
+    $scope.aggregate_functions = $scope.all_aggregate_functions
+
+    $scope.questions = [{"id": 1, "correct": 0, "text": "I want my source system to send usage data to SBP every day. I want to apply a flat rate to each row.",
+                            "bu_data_frequency": "daily", "nature_of_usage":"incremental", "rating_model": "flat_rate", "time_dimension": "udr", "aggregate_function":"none", "snapshot_logic":"false"},
+                        {"id": 2,"correct": 0, "text": "I want SBP to receive data from my source system every day. I only want to apply a flat rate to the records that arrive closest to my customer’s bill day, and to discard the rest of the data.",
+                            "bu_data_frequency": "daily", "nature_of_usage":"incremental", "rating_model": "flat_rate", "time_dimension": "udr", "aggregate_function":"none", "snapshot_logic":"true"},
+                        {"id": 3,"correct": 0, "text": "I want to send usage to SBP every sun set. I want to apply a flat rate to an average calculated over the course of each day.",
+                            "bu_data_frequency": "daily", "nature_of_usage":"incremental", "rating_model": "flat_rate", "time_dimension": "daily", "aggregate_function":"avg", "snapshot_logic":"false"},
+                        {"id": 4,"correct": 0, "text": "I want my source system to send usage data to SBP every day. I want SBP to calculate a daily average, but only rate it if that day’s average was five days prior to my customer’s bill day.",
+                            "bu_data_frequency": "daily", "nature_of_usage":"incremental", "rating_model": "flat_rate", "time_dimension": "daily", "aggregate_function":"avg", "snapshot_logic":"true"},
+                        {"id": 5,"correct": 0, "text": "Once a day I want SBP to receive my data. I want SBP to calculate an average over the month, and apply a flat rate to that average.",
+                            "bu_data_frequency": "daily", "nature_of_usage":"incremental", "rating_model": "flat_rate", "time_dimension": "monthly", "aggregate_function":"avg", "snapshot_logic":"false"},
+                        {"id": 6,"correct": 0, "text": "Every day SBP should get my usage. I want to apply a tier to each individual UDR.",
+                            "bu_data_frequency": "daily", "nature_of_usage":"incremental", "rating_model": "tier", "time_dimension": "udr", "aggregate_function":"none", "snapshot_logic":"false"},
+                        {"id": 7,"correct": 0, "text": "SBP needs to pull my usage every day. I want to apply a tier, but only to the individual UDRs that arrive 5 days prior to my customer’s bill day, and discard the rest of the data.",
+                            "bu_data_frequency": "daily", "nature_of_usage":"incremental", "rating_model": "tier", "time_dimension": "udr", "aggregate_function":"none", "snapshot_logic":"true"},
+                        {"id": 8,"correct": 0, "text": "I want my source system to send usage data to SBP every day. I want SBP to calculate a daily sum and then apply the tier to this sum.",
+                            "bu_data_frequency": "daily", "nature_of_usage":"incremental", "rating_model": "tier", "time_dimension": "daily", "aggregate_function":"sum", "snapshot_logic":"false"},
+                        {"id": 9,"correct": 0, "text": "I want SBP to receive my source system usage data daily. I only want SBP to take into account those records that arrive 5 days before bill day. I want SBP to calculate a daily sum and apply a tier to this sum.",
+                            "bu_data_frequency": "daily", "nature_of_usage":"incremental", "rating_model": "tier", "time_dimension": "daily", "aggregate_function":"sum", "snapshot_logic":"true"},
+                        {"id": 10,"correct": 0, "text": "I want my source system to send usage data to SBP every day. I want to apply a tier to an average calculated over the month.",
+                            "bu_data_frequency": "daily", "nature_of_usage":"incremental", "rating_model": "tier", "time_dimension": "monthly", "aggregate_function":"avg", "snapshot_logic":"false"},
+                        {"id": 11,"correct": 0, "text": "I want to send data to SBP once a month. I want SBP to apply a flat rate to every record that arrives.",
+                            "bu_data_frequency": "monthly", "nature_of_usage":"incremental", "rating_model": "flat_rate", "time_dimension": "udr", "aggregate_function":"none", "snapshot_logic":"false"},
+                        {"id": 12,"correct": 0, "text": "I want to send data to SBP once a month. Inside of this transmission, I want to include all the raw data that happened over the course of the month. I want SBP to calculate an average over each day, and apply a flat rate to all of these averages.",
+                            "bu_data_frequency": "monthly", "nature_of_usage":"incremental", "rating_model": "flat_rate", "time_dimension": "daily", "aggregate_function":"avg", "snapshot_logic":"false"},
+                        {"id": 13,"correct": 0, "text": "I want to send data to SBP monthly. Inside of this transmission, I want to include all the raw data that occurred over the month. I want SBP to apply a flat rate to an average computed over the entire month.",
+                            "bu_data_frequency": "monthly", "nature_of_usage":"incremental", "rating_model": "flat_rate", "time_dimension": "monthly", "aggregate_function":"avg", "snapshot_logic":"false"},
+                        {"id": 14,"correct": 0, "text": "Once a month I want SBP to receive my data. I want SBP to apply a tier to all of the records.",
+                            "bu_data_frequency": "monthly", "nature_of_usage":"incremental", "rating_model": "tier", "time_dimension": "udr", "aggregate_function":"none", "snapshot_logic":"false"},
+                        {"id": 15,"correct": 0, "text": "Once every full moon I want to send SBP all of my raw data that occurred that month. I want SBP to calculate daily sums on that raw data and apply a tier to each sum.",
+                            "bu_data_frequency": "monthly", "nature_of_usage":"incremental", "rating_model": "tier", "time_dimension": "daily", "aggregate_function":"sum", "snapshot_logic":"false"},
+                        {"id": 16,"correct": 0, "text": "I want my source system to send SBP data once a month. In this payload I want to include all the raw data for the entire month. SBP should compute an average over the month and apply a tier to it.",
+                            "bu_data_frequency": "monthly", "nature_of_usage":"incremental", "rating_model": "tier", "time_dimension": "monthly", "aggregate_function":"avg", "snapshot_logic":"false"},
+                        ];
+
+    $scope.question = $scope.questions[0];
+
+    $scope.next_question = function(id) {
+
+        if ($scope.bu_data_frequency == $scope.question.bu_data_frequency &&
+                $scope.nature_of_usage == $scope.question.nature_of_usage &&
+                $scope.rating_model == $scope.question.rating_model &&
+                $scope.time_dimension == $scope.question.time_dimension &&
+                $scope.aggregate_function == $scope.aggregate_function &&
+                $scope.snapshot_logic == $scope.question.snapshot_logic) {
+            console.log("CORRECT");
+            $scope.question.correct = 1;
+            $scope.clear();
+        } else {
+            console.log("INCORRECT");
+            $scope.question.c_bu_data_frequency = $scope.bu_data_frequency;
+            $scope.question.c_nature_of_usage = $scope.nature_of_usage;
+            $scope.question.c_rating_model = $scope.rating_model;
+            $scope.question.c_time_dimension = $scope.time_dimension;
+            $scope.question.c_aggregate_function = $scope.aggregate_function;
+            $scope.question.c_snapshot_logic = $scope.snapshot_logic;
+        }
+        if (id < 16) {
+            $scope.question = $scope.questions[id];
+        } else {
+            $('#result').empty();
+            var sum_correct = 0;
+            $.each($scope.questions, function(key, value) {
+                sum_correct += value.correct;
+            });
+
+             $('#result').append("Number correct: " + sum_correct + " out of 16 total<br/>");
+             $('#result').append("You missed the following questions:<br /> <br />");
+             $.each($scope.questions, function(key, value) {
+                if (value.correct == 0) {
+                    $('#result').append(value.text);
+                    $('#result').append('<table class="table table-striped">');
+                    $('#result').append('<tr><td></td> <td>Bu Data Frequency</td><td>Rating Model</td><td>Nature of Usage</td><td>Time Dimension</td><td>Aggregate Function</td><td>Snapshot Logic</td></tr>');
+                    $('#result').append('<tr><td>Correct choices:</td> <td>' + value.bu_data_frequency + '</td><td>' + value.rating_model + '</td><td>' + value.nature_of_usage + '</td><td>' + value.time_dimension + '</td><td>' + value.aggregate_function + '</td><td>' + value.snapshot_logic + '</td></tr>');
+                    $('#result').append('<tr><td>Your choices:</td> <td>' + value.c_bu_data_frequency + '</td><td>' + value.c_rating_model + '</td><td>' + value.c_nature_of_usage + '</td><td>' + value.c_time_dimension + '</td><td>' + value.c_aggregate_function + '</td><td>' + value.c_snapshot_logic + '</td></tr>');
+                    $('#result').append('</table>');
+                    $('#result').append('</br><br />');
+                }
+             });
+
+            console.log("Sum correct is " + sum_correct);
+        }
+    }
+
+
+
+
+
+}]);
+
+
+</script>
+
+</body>
+</html>

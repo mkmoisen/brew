@@ -50,6 +50,8 @@ class Probe(object):
             temp_f = temp_c * 9.0 / 5.0 + 32.0
             if temp_f == 185.0:
                 raise RuntimeError("Probe {} is 185.0F!".format(self.file_name))
+            if temp_f == 32.0:
+                raise RuntimeError("Probe {} is 32.0!".format(self.file_name))
             return temp_f
 
     def __str__(self):
