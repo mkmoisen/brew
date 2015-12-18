@@ -1129,7 +1129,7 @@ def start():
 
             # Sleep
             print "\n"
-            time.sleep(5)
+            time.sleep(60)
 
 
     except KeyboardInterrupt:
