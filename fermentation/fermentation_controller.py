@@ -543,8 +543,8 @@ def fermentors_change():
                 ,yeast = fermentor['yeast']
                 ,og = fermentor['og']
                 ,fg = fermentor['fg']
-                ,start_temp = fermentor['start_temp']
-                ,temp_differential = fermentor['temp_differential']
+                ,start_temp = float(fermentor['start_temp'])
+                ,temp_differential = float(fermentor['temp_differential'])
                 ,material = fermentor['material']
                 ,host = fermentor['host_id']
             )

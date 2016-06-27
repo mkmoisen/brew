@@ -919,8 +919,8 @@ class Properties(object):
 
         for fermentor in properties['fermentors']:
             f = Fermentor(name=fermentor['name'],
-                          start_temp=fermentor['start_temp'],
-                          temp_differential=fermentor['temp_differential'],
+                          start_temp=float(fermentor['start_temp']),
+                          temp_differential=float(fermentor['temp_differential']),
                           fermwrap_pin=fermentor['fermwrap_pin'],
                           id=fermentor['id'])
 
